@@ -13,7 +13,7 @@ import { MediaPicker } from './MediaPicker';
 export interface PickerOptions {
     // True when emojis can be added.
     pickEmoji?: boolean;
-    
+
     // True when media can be added.
     pickMedia?: boolean;
 
@@ -40,7 +40,7 @@ export const Picker = (props: PickerProps) => {
 
     const [openPicker, setOpenPicker] = React.useState(0);
 
-    const { x, y, reference, floating, strategy, update } = useFloating({
+    const { x, y, strategy, update, refs } = useFloating({
         placement: 'bottom-end',
         middleware: [
             flip(),
@@ -74,13 +74,13 @@ export const Picker = (props: PickerProps) => {
 
     const doSelectArgument = useEventCallback(() => {
         onPick('{{ myVariable }}');
-        
+
         setOpenPicker(0);
     });
 
     const doSelectEmoji = useEventCallback((emoji: any) => {
         onPick(emoji.native);
-        
+
         setOpenPicker(0);
     });
 
@@ -95,7 +95,7 @@ export const Picker = (props: PickerProps) => {
     const doPickEmoji = useEventCallback(() => {
         setOpenPicker(2);
     });
-    
+
     if (!pickArgument && !pickMedia) {
         return null;
     }
@@ -103,7 +103,7 @@ export const Picker = (props: PickerProps) => {
     return (
         <>
             <OverlayDropdown placement='right' button={
-                <Button type='button' color='link' className='input-btn' innerRef={reference}>
+                <Button type='button' color='link' className='input-btn' innerRef={refs.setReference}>
                     <Icon className='rotate' type='add_circle' />
                 </Button>
             }>
@@ -127,7 +127,7 @@ export const Picker = (props: PickerProps) => {
                     }
                 </DropdownMenu>
             </OverlayDropdown>
-        
+
             {openPicker === 1 &&
                 <MediaPicker
                     onClose={doClose}
@@ -140,7 +140,7 @@ export const Picker = (props: PickerProps) => {
                 <>
                     {ReactDOM.createPortal(
                         <ClickOutside isActive={true} onClickOutside={doClose}>
-                            <div className='overlay emojis' ref={floating} style={{ position: strategy, top: y || 0, left: x || 0 }}>
+                            <div className='overlay emojis' ref={refs.setFloating} style={{ position: strategy, top: y || 0, left: x || 0 }}>
                                 <EmojiPicker data={EmojiData} onEmojiSelect={doSelectEmoji} />
                             </div>
                         </ClickOutside>,

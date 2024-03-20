@@ -5,7 +5,6 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using MongoDB.Driver;
 using Notifo.Infrastructure.Scheduling;
 using Notifo.Infrastructure.Scheduling.Implementation.TimerBased.MongoDb;
 
@@ -17,9 +16,7 @@ public sealed class MongoDbSchedulerStoreFixture : IDisposable
 
     public MongoDbSchedulerStoreFixture()
     {
-        InstantSerializer.Register();
-
-        var mongoClient = new MongoClient("mongodb://localhost");
+        var mongoClient = MongoClientFactory.Create("mongodb://localhost");
         var mongoDatabase = mongoClient.GetDatabase("Testing");
 
         Store = new MongoDbSchedulerStore<int>(mongoDatabase, new SchedulerOptions { QueueName = "Numbers" });

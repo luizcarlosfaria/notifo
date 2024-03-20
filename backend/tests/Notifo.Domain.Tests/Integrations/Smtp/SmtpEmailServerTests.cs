@@ -5,18 +5,34 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
+using System.Globalization;
 using Microsoft.Extensions.Configuration;
-using Notifo.Domain.Channels.Email;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Notifo.Domain.Integrations.Smtp;
 
 [Trait("Category", "Dependencies")]
 public class SmtpEmailServerTests : EmailSenderTestBase
 {
-    protected override IEmailSender CreateSender()
+    protected override ResolvedIntegration<IEmailSender> CreateSender()
     {
         var options = TestHelpers.Configuration.GetSection("email:smtp").Get<SmtpOptions>() ?? new SmtpOptions();
 
-        return new SmtpEmailSender(() => new SmtpEmailServer(options), Address, Address);
+        var context = BuildContext(new Dictionary<string, string>
+        {
+            [SmtpIntegration.HostPortProperty.Name] = options.HostPort.ToString(CultureInfo.InvariantCulture),
+            [SmtpIntegration.HostProperty.Name] = options.HostName,
+            [SmtpIntegration.PasswordProperty.Name] = options.Password,
+            [SmtpIntegration.UsernameProperty.Name] = options.Username,
+        });
+
+        var integration =
+            new ServiceCollection()
+                .AddIntegrationSmtp()
+                .AddMemoryCache()
+                .BuildServiceProvider()
+                .GetRequiredService<SmtpIntegration>();
+
+        return new ResolvedIntegration<IEmailSender>(Guid.NewGuid().ToString(), context, integration);
     }
 }

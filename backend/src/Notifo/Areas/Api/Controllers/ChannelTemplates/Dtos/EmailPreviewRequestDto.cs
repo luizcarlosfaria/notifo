@@ -6,10 +6,12 @@
 // ==========================================================================
 
 using System.ComponentModel.DataAnnotations;
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Domain.Channels.Email;
 
 namespace Notifo.Areas.Api.Controllers.ChannelTemplates.Dtos;
 
+[OpenApiRequest]
 public sealed class EmailPreviewRequestDto
 {
     /// <summary>
@@ -23,17 +25,9 @@ public sealed class EmailPreviewRequestDto
     /// </summary>
     public EmailPreviewType Type { get; set; }
 
-    /// <summary>
-    /// The kind of the template.
-    /// </summary>
-    public string? Kind { get; set; }
-
     public EmailTemplate ToEmailTemplate()
     {
-        var emailTemplate = new EmailTemplate
-        {
-            Kind = Kind
-        };
+        var emailTemplate = new EmailTemplate();
 
         if (Type == EmailPreviewType.Html)
         {

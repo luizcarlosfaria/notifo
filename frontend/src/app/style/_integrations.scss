@@ -6,9 +6,16 @@
     display: inline-block;
     margin-bottom: 1rem;
     margin-right: 1rem;
-    min-height: 13.5rem;
     vertical-align: top;
     width: 20rem;
+
+    & {
+        min-height: 13.5rem;
+    }
+
+    &.available {
+        min-height: 9rem;
+    }
 
     h4 {
         margin-bottom: 0;
@@ -24,6 +31,12 @@
         @include force-width(5rem);
         padding-right: 1.5rem;
         padding-top: .5rem;
+
+        svg {
+            max-height: 4rem;
+            min-height: none;
+            width: 100%;
+        }
 
         img {
             max-height: 4rem;
@@ -50,8 +63,12 @@
         padding-right: 1.5rem !important;
         padding-top: .5rem;
 
-        img {
+        svg {
             height: 2.5rem;
         }
     }
+}
+
+.badges {
+    line-height: 1.5;
 }

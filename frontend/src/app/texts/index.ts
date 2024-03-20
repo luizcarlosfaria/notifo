@@ -6,14 +6,17 @@
  */
 
 import { EN } from './en';
+import { TR } from './tr';
+
+const navigatorAny = navigator as any;
 
 let userLanguage: string =
     localStorage.getItem('language') ||
     navigator.language ||
-    navigator['userLanguage'];
+    navigatorAny['userLanguage'];
 
 if (userLanguage) {
     userLanguage = userLanguage.substring(0, 2);
 }
 
-export const texts = EN;
+export const texts = userLanguage.startsWith('tr') ? TR : EN;

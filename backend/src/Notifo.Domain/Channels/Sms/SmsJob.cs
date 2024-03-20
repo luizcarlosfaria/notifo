@@ -5,69 +5,28 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.Diagnostics;
-using Notifo.Domain.Integrations;
 using Notifo.Domain.UserNotifications;
 using Notifo.Infrastructure;
-using Notifo.Infrastructure.Reflection;
 
 namespace Notifo.Domain.Channels.Sms;
 
-public sealed class SmsJob : ChannelJob, IIntegrationTarget
+public sealed class SmsJob : ChannelJob
 {
-    public string PhoneNumber { get; init; }
-
-    public string PhoneText { get; init; }
-
-    public string TemplateLanguage { get; init; }
-
-    public string? TemplateName { get; init; }
-
-    public NotificationProperties? Properties { get; init; }
-
-    public ActivityContext EventActivity { get; init; }
-
-    public ActivityContext UserEventActivity { get; init; }
-
-    public ActivityContext UserNotificationActivity { get; init; }
-
-    public bool Test { get; init; }
-
     public string ScheduleKey
     {
-        get => ComputeScheduleKey(Tracking.UserNotificationId, PhoneNumber);
-    }
-
-    IEnumerable<KeyValuePair<string, object>>? IIntegrationTarget.Properties
-    {
-        get
-        {
-            if (Properties != null)
-            {
-                yield return new KeyValuePair<string, object>("properties", Properties);
-            }
-
-            yield return new KeyValuePair<string, object>("phoneNumber", PhoneNumber);
-        }
+        get => string.Join('_',
+            Notification.AppId,
+            Notification.UserId,
+            Template,
+            GroupKey.OrDefault(Notification.Id));
     }
 
     public SmsJob()
     {
     }
 
-    public SmsJob(UserNotification notification, ChannelSetting setting, Guid configurationId, string phoneNumber)
-        : base(notification, setting, configurationId, false, Providers.Sms)
+    public SmsJob(UserNotification notification, ChannelContext context)
+        : base(notification, context)
     {
-        SimpleMapper.Map(notification, this);
-
-        PhoneNumber = phoneNumber;
-        PhoneText = notification.Formatting.Subject.Truncate(140);
-        TemplateLanguage = notification.UserLanguage;
-        TemplateName = setting.Template;
-    }
-
-    public static string ComputeScheduleKey(Guid notificationId, string phoneNumber)
-    {
-        return $"{notificationId}_{phoneNumber}";
     }
 }

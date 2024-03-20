@@ -6,9 +6,8 @@
  */
 
 import * as React from 'react';
-import ReactTooltip from 'react-tooltip';
 import { Button } from 'reactstrap';
-import {  Confirm, Icon } from '@app/framework';
+import { Confirm, Icon } from '@app/framework';
 import { SystemUserDto } from '@app/service';
 import { texts } from '@app/texts';
 
@@ -35,15 +34,11 @@ export interface SystemUserRowProps {
 export const SystemUserRow = React.memo((props: SystemUserRowProps) => {
     const {
         onDelete,
-        onEdit, 
+        onEdit,
         onLock,
         onUnlock,
         user,
     } = props;
-
-    React.useEffect(() => {
-        ReactTooltip.rebuild();
-    });
 
     const doDelete = () => {
         onDelete && onDelete(user);
@@ -74,24 +69,24 @@ export const SystemUserRow = React.memo((props: SystemUserRowProps) => {
                     {user.canUpdate &&
                         <>
                             {!user.isLocked &&
-                                <Button className='ml-1' size='sm' color='light' onClick={doLock} data-tip={texts.users.lock}>
+                                <Button className='ml-1' size='sm' color='light' onClick={doLock} data-tooltip-id="default-tooltip" data-tooltip-content={texts.users.lock}>
                                     <Icon type='lock_outline' />
                                 </Button>
                             }
 
                             {user.isLocked &&
-                                <Button className='ml-1' size='sm' color='dark' onClick={doUnlock} data-tip={texts.users.unlock}>
+                                <Button className='ml-1' size='sm' color='dark' onClick={doUnlock} data-tooltip-id="default-tooltip" data-tooltip-content={texts.users.unlock}>
                                     <Icon type='lock_open' />
                                 </Button>
                             }
 
-                            <Button className='ml-1' size='sm' color='primary' onClick={doEdit} data-tip={texts.common.edit}>
+                            <Button className='ml-1' size='sm' color='primary' onClick={doEdit} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.edit}>
                                 <Icon type='create' />
                             </Button>
 
                             <Confirm onConfirm={doDelete} text={texts.users.confirmDelete}>
                                 {({ onClick }) => (
-                                    <Button className='ml-1' size='sm' color='danger' onClick={onClick} data-tip={texts.common.delete}>
+                                    <Button className='ml-1' size='sm' color='danger' onClick={onClick} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.delete}>
                                         <Icon type='delete' />
                                     </Button>
                                 )}

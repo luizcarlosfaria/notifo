@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
     "allowJs": false,
+    "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "incremental": true,
     "importHelpers": true,
-    "jsx": "react",
+    "jsx": "react-jsx",
     "lib": ["es6", "dom", "WebWorker"],
     "moduleResolution": "node",
-    "module": "es2015",
+    "module": "ES2020",
+    "noEmit": true,
     "noEmitHelpers": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
@@ -16,9 +18,9 @@
     "noImplicitThis": true,
     "removeComments": false,
     "sourceMap": true,
+    "skipLibCheck": true,
     "strict": true,
     "strictNullChecks": true,
-    "suppressImplicitAnyIndexErrors": true,
     "target": "es5",
     "paths": {
       "@app*": [

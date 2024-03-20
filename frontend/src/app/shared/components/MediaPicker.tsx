@@ -33,7 +33,7 @@ export const MediaPicker = (props: MediaPickerProps) => {
         onSelected,
     } = props;
 
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const medias = useMedia(x => x.media);
@@ -74,7 +74,7 @@ export const MediaPicker = (props: MediaPickerProps) => {
                                 {medias.isLoading ? (
                                     <Loader visible={medias.isLoading} />
                                 ) : (
-                                    <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tip={texts.common.refresh}>
+                                    <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.refresh}>
                                         <Icon className='text-lg' type='refresh' />
                                     </Button>
                                 )}

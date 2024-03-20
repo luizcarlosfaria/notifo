@@ -6,37 +6,34 @@
 // ==========================================================================
 
 using Microsoft.Extensions.Configuration;
-using Notifo.Domain.Apps;
-using Notifo.Domain.Channels.Sms;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Notifo.Domain.Integrations.Telekom;
 
 [Trait("Category", "Dependencies")]
-public sealed class TelekomTests
+public sealed class TelekomTests : SmsSenderTestBase
 {
-    private readonly string apiKey = TestHelpers.Configuration.GetValue<string>("telekom:apiKey")!;
-    private readonly string phoneNumberFrom = TestHelpers.Configuration.GetValue<string>("telekom:phoneNumberFrom")!;
-    private readonly string phoneNumberTo = TestHelpers.Configuration.GetValue<string>("telekom:phoneNumberTo")!;
-
-    [Fact]
-    public async Task Should_send_sms()
+    protected override ResolvedIntegration<ISmsSender> CreateSender()
     {
-        var clientFactory = A.Fake<IHttpClientFactory>();
+        var apiKey = TestHelpers.Configuration.GetValue<string>("sms:telekom:apiKey")!;
+        var phoneNumber = TestHelpers.Configuration.GetValue<string>("sms:telekom:phoneNumber")!;
+        var phoneNumbers = TestHelpers.Configuration.GetValue<string>("sms:telekom:phoneNumbers")!;
 
-        A.CallTo(() => clientFactory.CreateClient(A<string>._))
-            .ReturnsLazily(() => new HttpClient());
+        var context = BuildContext(new Dictionary<string, string>
+        {
+            [TelekomSmsIntegration.ApiKeyProperty.Name] = apiKey,
+            [TelekomSmsIntegration.PhoneNumberProperty.Name] = phoneNumber,
+            [TelekomSmsIntegration.PhoneNumberProperty.Name] = phoneNumbers,
+        });
 
-        var sut = new TelekomSmsSender(clientFactory,
-            A.Fake<ISmsCallback>(),
-            A.Fake<ISmsUrl>(),
-            apiKey,
-            phoneNumberFrom,
-            "1");
+        var integration =
+            new ServiceCollection()
+                .AddIntegrationTelekom()
+                .AddMemoryCache()
+                .AddHttpClient()
+                .BuildServiceProvider()
+                .GetRequiredService<TelekomSmsIntegration>();
 
-        var app = new App("1", default);
-
-        var response = await sut.SendAsync(app, phoneNumberTo, "Hello Telekom", "1");
-
-        Assert.Equal(SmsResult.Sent, response);
+        return new ResolvedIntegration<ISmsSender>(Guid.NewGuid().ToString(), context, integration);
     }
 }

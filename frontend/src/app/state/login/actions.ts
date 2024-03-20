@@ -6,12 +6,15 @@
  */
 
 import { createAction, createReducer } from '@reduxjs/toolkit';
+import { User as OidcUser } from 'oidc-client-ts';
 import { routerActions } from 'react-router-redux';
 import { Dispatch, Middleware } from 'redux';
 import { Types } from '@app/framework';
 import { AuthService, Clients } from '@app/service';
 import { createApiThunk } from './../shared';
 import { LoginState, User } from './state';
+
+const userManager = AuthService.getUserManager();
 
 const loginStarted = createAction('login/started');
 
@@ -33,9 +36,6 @@ export const loadProfile = createApiThunk('login/profile',
 export const loginStart = () => {
     return async (dispatch: Dispatch) => {
         dispatch(loginStarted());
-
-        const userManager = AuthService.getUserManager();
-
         let currentUser = await userManager.getUser();
 
         if (!currentUser) {
@@ -58,8 +58,6 @@ export const loginStart = () => {
 
 export const loginDone = () => {
     return async (dispatch: Dispatch) => {
-        const userManager = AuthService.getUserManager();
-
         const currentUser = await userManager.signinCallback();
 
         if (!currentUser) {
@@ -67,7 +65,7 @@ export const loginDone = () => {
         } else if (currentUser) {
             const user = getUser(currentUser);
 
-            dispatch(loginDoneRedirect({ user, redirectPath: currentUser.state?.redirectPath }));
+            dispatch(loginDoneRedirect({ user, redirectPath: (currentUser.state as any)?.['redirectPath'] }));
         }
     };
 };
@@ -75,8 +73,6 @@ export const loginDone = () => {
 export const logoutStart = () => {
     return async (dispatch: Dispatch) => {
         dispatch(logoutStarted());
-
-        const userManager = AuthService.getUserManager();
 
         const currentUser = await userManager.getUser();
 
@@ -88,8 +84,6 @@ export const logoutStart = () => {
 
 export const logoutDone = () => {
     return async (dispatch: Dispatch) => {
-        const userManager = AuthService.getUserManager();
-
         const response = await userManager.signoutRedirectCallback();
 
         if (!response.error) {
@@ -100,8 +94,6 @@ export const logoutDone = () => {
 
 export const loginMiddleware: Middleware = (state) => next => action => {
     if (action.payload?.statusCode === 401 || action.payload?.error?.statusCode === 401) {
-        const userManager = AuthService.getUserManager();
-
         userManager.signoutRedirect();
     }
 
@@ -146,7 +138,7 @@ export const loginReducer = createReducer(initialState, builder => builder
         state.user = undefined;
     }));
 
-function getUser(user: Oidc.User): User {
+function getUser(user: OidcUser): User {
     const { sub, name, role } = user.profile!;
 
     let roles: string[];

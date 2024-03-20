@@ -14,6 +14,8 @@ using MongoDB.Driver;
 using Notifo.Infrastructure;
 using Notifo.Infrastructure.MongoDb;
 
+#pragma warning disable MA0020 // Use direct methods instead of LINQ methods
+
 namespace Notifo.Identity.MongoDb;
 
 public sealed class MongoDbUserStore :
@@ -213,7 +215,7 @@ public sealed class MongoDbUserStore :
     public async Task<IdentityUser?> FindByLoginAsync(string loginProvider, string providerKey,
         CancellationToken cancellationToken)
     {
-        var result = await Collection.Find(x => x.Logins.Any(y => y.LoginProvider == loginProvider && y.ProviderKey == providerKey)).FirstOrDefaultAsync(cancellationToken);
+        var result = await Collection.Find(Filter.ElemMatch(x => x.Logins, BuildFilter(loginProvider, providerKey))).FirstOrDefaultAsync(cancellationToken);
 
         return result;
     }
@@ -631,7 +633,7 @@ public sealed class MongoDbUserStore :
     public Task ReplaceCodesAsync(IdentityUser user, IEnumerable<string> recoveryCodes,
         CancellationToken cancellationToken)
     {
-        ((MongoDbUser)user).ReplaceToken(InternalLoginProvider, RecoveryCodeTokenName, string.Join(";", recoveryCodes));
+        ((MongoDbUser)user).ReplaceToken(InternalLoginProvider, RecoveryCodeTokenName, string.Join(';', recoveryCodes));
 
         return Task.CompletedTask;
     }
@@ -646,11 +648,20 @@ public sealed class MongoDbUserStore :
         {
             var updatedCodes = new List<string>(splitCodes.Where(s => s != code));
 
-            ((MongoDbUser)user).ReplaceToken(InternalLoginProvider, RecoveryCodeTokenName, string.Join(";", updatedCodes));
+            ((MongoDbUser)user).ReplaceToken(InternalLoginProvider, RecoveryCodeTokenName, string.Join(';', updatedCodes));
 
             return Task.FromResult(true);
         }
 
         return Task.FromResult(false);
+    }
+
+    private static FilterDefinition<UserLogin> BuildFilter(string loginProvider, string providerKey)
+    {
+        var filter = Builders<UserLogin>.Filter;
+
+        return filter.And(
+            filter.Eq(x => x.LoginProvider, loginProvider),
+            filter.Eq(x => x.ProviderKey, providerKey));
     }
 }

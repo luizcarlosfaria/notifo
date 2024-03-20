@@ -8,6 +8,7 @@
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Net.Http.Headers;
 using Notifo.Pipeline;
+using Squidex.Hosting.Web;
 
 namespace Notifo.Areas.Frontend;
 
@@ -26,22 +27,21 @@ public static class Startup
         }
 
         app.UseMiddleware<NotifoMiddleware>();
+        app.UseMiddleware<SetupMiddleware>();
 
-        app.UseWhen(c => c.IsSpaFile(), builder =>
+        app.UseHtmlTransform(new HtmlTransformOptions
         {
-            builder.UseMiddleware<SetupMiddleware>();
-        });
-
-        app.UseWhen(c => c.IsSpaFile() || c.IsHtmlPath(), builder =>
-        {
-            builder.UseHtmlTransform();
+            Transform = (html, context) =>
+            {
+                return new ValueTask<string>(html.AddOptions(context));
+            }
         });
 
         app.UseNotifoStaticFiles(fileProvider);
 
         if (environment.IsProduction())
         {
-            // Try static files again tó serve index.html.
+            // Try static files again to serve index.html.
             app.UsePathOverride("/index.html");
             app.UseNotifoStaticFiles(fileProvider);
         }
@@ -74,15 +74,5 @@ public static class Startup
             },
             FileProvider = fileProvider
         });
-    }
-
-    private static bool IsSpaFile(this HttpContext context)
-    {
-        return (context.IsIndex() || !Path.HasExtension(context.Request.Path)) && !context.IsDevServer();
-    }
-
-    private static bool IsDevServer(this HttpContext context)
-    {
-        return context.Request.Path.StartsWithSegments("/ws", StringComparison.OrdinalIgnoreCase);
     }
 }

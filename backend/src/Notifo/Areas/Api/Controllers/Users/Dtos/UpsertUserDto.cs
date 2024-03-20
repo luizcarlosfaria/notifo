@@ -5,13 +5,14 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using Notifo.Domain;
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Domain.Users;
 using Notifo.Infrastructure.Collections;
 using Notifo.Infrastructure.Reflection;
 
 namespace Notifo.Areas.Api.Controllers.Users.Dtos;
 
+[OpenApiRequest]
 public sealed class UpsertUserDto
 {
     /// <summary>
@@ -59,6 +60,16 @@ public sealed class UpsertUserDto
     /// </summary>
     public Dictionary<string, ChannelSettingDto>? Settings { get; set; }
 
+    /// <summary>
+    /// The scheduling settings.
+    /// </summary>
+    public SchedulingDto? Scheduling { get; set; }
+
+    /// <summary>
+    /// Indicates whether scheduling should be overriden.
+    /// </summary>
+    public bool HasScheduling { get; set; }
+
     public UpsertUser ToUpsert()
     {
         var result = SimpleMapper.Map(this, new UpsertUser());
@@ -67,7 +78,7 @@ public sealed class UpsertUserDto
 
         if (Settings != null)
         {
-            result.Settings = new ChannelSettings();
+            result.Settings = [];
 
             foreach (var (key, value) in Settings)
             {
@@ -77,6 +88,8 @@ public sealed class UpsertUserDto
                 }
             }
         }
+
+        result.Scheduling = Scheduling?.ToDomainObject();
 
         return result;
     }

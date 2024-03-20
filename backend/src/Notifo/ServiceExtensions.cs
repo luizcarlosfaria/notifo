@@ -5,10 +5,7 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using MongoDB.Bson.Serialization;
 using Notifo.Domain;
-using Notifo.Infrastructure.Collections;
-using Notifo.Infrastructure.Collections.Bson;
 using Notifo.Infrastructure.MongoDb;
 using Notifo.Pipeline;
 using Squidex.Messaging.Implementation.Null;
@@ -46,14 +43,6 @@ public static class ServiceExtensions
         {
             ["MongoDB"] = () =>
             {
-                BsonSerializer.RegisterGenericSerializerDefinition(
-                    typeof(ReadonlyList<>),
-                    typeof(ReadonlyListSerializer<>));
-
-                BsonSerializer.RegisterGenericSerializerDefinition(
-                    typeof(ReadonlyDictionary<,>),
-                    typeof(ReadonlyDictionarySerializer<,>));
-
                 SoftEnumSerializer<ConfirmMode>.Register();
 
                 services.AddMyMongoApps();

@@ -5,7 +5,8 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-/** @jsx h */
+/** @jsximportsource preact */
+
 import { Fragment, h } from 'preact';
 import { useCallback, useEffect } from 'preact/hooks';
 import { NotificationsOptions, SDKConfig, sendToBoolean, setUserChannel, UpdateProfileDto } from '@sdk/shared';
@@ -56,7 +57,7 @@ export const ProfileView = (props: ProfileViewProps) => {
     }, [dispatch, config, formValue]);
 
     const doChange = useCallback((event: h.JSX.TargetedEvent<HTMLInputElement> | h.JSX.TargetedEvent<HTMLSelectElement>) => {
-        formState.set(value => value[event.currentTarget.id] = event.currentTarget.value);
+        formState.set(value => setEventValue(value, event));
     }, [formState]);
 
     const doChangeSend = useCallback((send: boolean | undefined, channel: string) => {
@@ -147,3 +148,7 @@ export const ProfileView = (props: ProfileViewProps) => {
         </Fragment>
     );
 };
+function setEventValue(value: UpdateProfileDto, event: h.JSX.TargetedEvent<HTMLInputElement, Event> | h.JSX.TargetedEvent<HTMLSelectElement, Event>): void {
+    (value as any)[event.currentTarget.id] = event.currentTarget.value;
+}
+

@@ -6,7 +6,6 @@
  */
 
 import classNames from 'classnames';
-import * as React from 'react';
 import { Alert } from 'reactstrap';
 import { ErrorDetails, ErrorInfo, formatError, isError, Types } from '@app/framework/utils';
 
@@ -24,7 +23,7 @@ export interface FormErrorProps {
 export const FormError = (props: FormErrorProps) => {
     const { className, error, size } = props;
 
-    if (error && error['statusCode'] === 401) {
+    if (error && (error as any)['statusCode'] === 401) {
         return null;
     }
 

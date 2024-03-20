@@ -5,7 +5,6 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.ComponentModel.DataAnnotations;
 using NodaTime;
 using Notifo.Domain.Apps;
 using Notifo.Domain.Events;
@@ -15,20 +14,18 @@ namespace Notifo.Areas.Api.Controllers.Events.Dtos;
 
 public sealed class EventDto
 {
-    private static readonly Dictionary<string, long> EmptyCounters = new Dictionary<string, long>();
-    private static readonly Dictionary<string, string> EmptyProperties = new Dictionary<string, string>();
-    private static readonly Dictionary<string, ChannelSettingDto> EmptySettings = new Dictionary<string, ChannelSettingDto>();
+    private static readonly Dictionary<string, long> EmptyCounters = [];
+    private static readonly Dictionary<string, string> EmptyProperties = [];
+    private static readonly Dictionary<string, ChannelSettingDto> EmptySettings = [];
 
     /// <summary>
     /// The id of the event.
     /// </summary>
-    [Required]
     public string Id { get; set; }
 
     /// <summary>
     /// The topic path.
     /// </summary>
-    [Required]
     public string Topic { get; set; }
 
     /// <summary>
@@ -39,7 +36,6 @@ public sealed class EventDto
     /// <summary>
     /// The display name.
     /// </summary>
-    [Required]
     public string DisplayName { get; set; }
 
     /// <summary>
@@ -50,25 +46,21 @@ public sealed class EventDto
     /// <summary>
     /// The time when the event has been created.
     /// </summary>
-    [Required]
     public Instant Created { get; set; }
 
     /// <summary>
     /// The final formatting infos.
     /// </summary>
-    [Required]
     public NotificationFormattingDto Formatting { get; set; }
 
     /// <summary>
     /// Notification settings per channel.
     /// </summary>
-    [Required]
     public Dictionary<string, ChannelSettingDto> Settings { get; set; }
 
     /// <summary>
     /// User defined properties.
     /// </summary>
-    [Required]
     public Dictionary<string, string> Properties { get; set; }
 
     /// <summary>
@@ -79,13 +71,11 @@ public sealed class EventDto
     /// <summary>
     /// The statistics counters.
     /// </summary>
-    [Required]
     public Dictionary<string, long> Counters { get; set; }
 
     /// <summary>
     /// True when silent.
     /// </summary>
-    [Required]
     public bool Silent { get; set; }
 
     /// <summary>
@@ -97,7 +87,7 @@ public sealed class EventDto
     {
         var result = SimpleMapper.Map(source, new EventDto
         {
-            Settings = new Dictionary<string, ChannelSettingDto>()
+            Settings = []
         });
 
         result.Properties = source.Properties ?? EmptyProperties;
@@ -123,7 +113,7 @@ public sealed class EventDto
 
         if (source.Settings?.Count > 0)
         {
-            result.Settings = new Dictionary<string, ChannelSettingDto>();
+            result.Settings = [];
 
             foreach (var (key, value) in source.Settings)
             {

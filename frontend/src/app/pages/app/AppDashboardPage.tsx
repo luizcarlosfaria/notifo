@@ -7,7 +7,7 @@
 
 import * as React from 'react';
 import { Card, CardBody, FormGroup, Label } from 'reactstrap';
-import { ApiValue, CodeDetails } from '@app/framework';
+import { ApiValue, Code } from '@app/framework';
 import { getApiUrl } from '@app/service';
 import { CounterCards } from '@app/shared/components';
 import { useApp } from '@app/state';
@@ -60,7 +60,7 @@ export const AppDashboardPage = () => {
                 <CardBody>
                     <Label>{texts.common.webPluginHint}</Label>
 
-                    <CodeDetails mode='html' value={buildSampleCode()}></CodeDetails>
+                    <Code mode='html' value={buildSampleCode()} autoHeight />
                 </CardBody>
             </Card>
         </div>
@@ -70,12 +70,12 @@ export const AppDashboardPage = () => {
 const buildSampleCode = () => {
     return `
 <script src="${getApiUrl()}/notifo-sdk.js"></script>
-<script<script>
+<script>
    var notifo = window['notifo'] || (window['notifo'] = []);
    // Initialize the plugin.
    notifo.push(['init', {
      userToken: 'YOUR_USER_API_KEY'
-   });
+   }]);
 
    // Subscribe to web push.
    notifo.push(['subscribe']);

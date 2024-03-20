@@ -5,87 +5,58 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.Diagnostics;
-using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using NodaTime;
-using Notifo.Domain.Channels.Webhook.Integrations;
 using Notifo.Domain.Integrations;
 using Notifo.Domain.Log;
 using Notifo.Domain.UserNotifications;
 using Notifo.Infrastructure;
-using Notifo.Infrastructure.Scheduling;
-using IUserNotificationQueue = Notifo.Infrastructure.Scheduling.IScheduler<Notifo.Domain.Channels.Webhook.WebhookJob>;
 
 namespace Notifo.Domain.Channels.Webhook;
 
-public sealed class WebhookChannel : ICommunicationChannel, IScheduleHandler<WebhookJob>
+public sealed class WebhookChannel : SchedulingChannelBase<WebhookJob, WebhookChannel>
 {
-    private const string WebhookId = nameof(WebhookId);
-    private readonly IHttpClientFactory httpClientFactory;
-    private readonly IUserNotificationStore userNotificationStore;
-    private readonly IUserNotificationQueue userNotificationQueue;
-    private readonly ILogStore logStore;
-    private readonly IIntegrationManager integrationManager;
+    private const string IntegrationId = nameof(IntegrationId);
 
-    public string Name => Providers.Webhook;
+    public override string Name => Providers.Webhook;
 
-    public bool IsSystem => true;
+    public override bool IsSystem => true;
 
-    public WebhookChannel(IHttpClientFactory httpClientFactory, ILogStore logStore,
-        IIntegrationManager integrationManager,
-        IUserNotificationQueue userNotificationQueue,
-        IUserNotificationStore userNotificationStore)
+    public WebhookChannel(IServiceProvider serviceProvider)
+        : base(serviceProvider)
     {
-        this.httpClientFactory = httpClientFactory;
-        this.logStore = logStore;
-        this.integrationManager = integrationManager;
-        this.userNotificationQueue = userNotificationQueue;
-        this.userNotificationStore = userNotificationStore;
     }
 
-    public IEnumerable<SendConfiguration> GetConfigurations(UserNotification notification, ChannelSetting setting, SendContext context)
+    public override IEnumerable<SendConfiguration> GetConfigurations(UserNotification notification, ChannelContext context)
     {
-        var webhooks = integrationManager.Resolve<WebhookDefinition>(context.App, notification);
+        var integrations = IntegrationManager.Resolve<IWebhookSender>(context.App, notification);
 
-        foreach (var (id, _) in webhooks)
+        foreach (var (id, _, _) in integrations)
         {
             yield return new SendConfiguration
             {
-                [WebhookId] = id
+                [IntegrationId] = id
             };
         }
     }
 
-    public Task HandleExceptionAsync(WebhookJob job, Exception ex)
-    {
-        return UpdateAsync(job, ProcessStatus.Failed);
-    }
-
-    public async Task SendAsync(UserNotification notification, ChannelSetting setting, Guid configurationId, SendConfiguration properties, SendContext context,
+    public override async Task SendAsync(UserNotification notification, ChannelContext context,
         CancellationToken ct)
     {
-        if (!properties.TryGetValue("WebhookId", out var webhookId))
+        if (!context.Configuration.TryGetValue(IntegrationId, out var integrationId))
         {
-            // Old configuration without a mobile push token.
+            // Old configuration without an integration id.
             return;
         }
 
         using (Telemetry.Activities.StartActivity("SmsChannel/SendAsync"))
         {
-            var webhook = integrationManager.Resolve<WebhookDefinition>(webhookId, context.App, notification);
-
-            // The webhook must match the name or the conditions.
-            if (webhook == null || !ShouldSend(webhook, context.IsUpdate, setting.Template))
-            {
-                return;
-            }
-
-            var job = new WebhookJob(notification, setting, configurationId, webhook, context.IsUpdate);
+            var job = new WebhookJob(notification, context, integrationId);
 
             // Do not use scheduling when the notification is an update.
             if (job.IsUpdate)
             {
-                await userNotificationQueue.ScheduleAsync(
+                await Scheduler.ScheduleAsync(
                     job.ScheduleKey,
                     job,
                     default(Instant),
@@ -93,95 +64,68 @@ public sealed class WebhookChannel : ICommunicationChannel, IScheduleHandler<Web
             }
             else
             {
-                await userNotificationQueue.ScheduleAsync(
+                await Scheduler.ScheduleAsync(
                     job.ScheduleKey,
                     job,
-                    job.Delay,
+                    job.SendDelay,
                     false, ct);
             }
         }
     }
 
-    public async Task<bool> HandleAsync(WebhookJob job, bool isLastAttempt,
+    protected override async Task SendJobsAsync(List<WebhookJob> jobs,
         CancellationToken ct)
     {
-        var links = job.Notification.Links();
+        // The schedule key is computed in a way that does not allow grouping. Therefore we have only one job.
+        var job = jobs[0];
 
-        var parentContext = Activity.Current?.Context ?? default;
-
-        using (Telemetry.Activities.StartActivity("WebhookChannel/HandleAsync", ActivityKind.Internal, parentContext, links: links))
-        {
-            if (await userNotificationStore.IsHandledAsync(job, this, ct))
-            {
-                await UpdateAsync(job, ProcessStatus.Skipped);
-            }
-            else
-            {
-                await SendJobAsync(job, ct);
-            }
-
-            return true;
-        }
-    }
-
-    private async Task SendJobAsync(WebhookJob job,
-        CancellationToken ct)
-    {
-        try
-        {
-            await UpdateAsync(job, ProcessStatus.Attempt);
-
-            await SendCoreAsync(job, ct);
-
-            await UpdateAsync(job, ProcessStatus.Handled);
-        }
-        catch (Exception ex)
-        {
-            await logStore.LogAsync(job.Notification.AppId, Name, ex.Message);
-            throw;
-        }
-    }
-
-    private async Task SendCoreAsync(WebhookJob job,
-        CancellationToken ct)
-    {
         using (Telemetry.Activities.StartActivity("Send"))
         {
-            using (var client = httpClientFactory.CreateClient())
-            {
-                var request = new HttpRequestMessage(new HttpMethod(job.Webhook.HttpMethod), job.Webhook.HttpUrl)
-                {
-                    Content = JsonContent.Create(job.Notification)
-                };
+            var app = await AppStore.GetCachedAsync(job.Notification.AppId, ct);
 
-                await client.SendAsync(request, ct);
+            if (app == null)
+            {
+                Log.LogWarning("Cannot send webhook: App not found.");
+
+                await UpdateAsync(job, DeliveryResult.Handled);
+                return;
+            }
+
+            var integration = IntegrationManager.Resolve<IWebhookSender>(job.IntegrationId, app);
+
+            if (integration == default)
+            {
+                await SkipAsync(job, LogMessage.Integration_Removed(Name));
+                return;
+            }
+
+            try
+            {
+                await UpdateAsync(job, DeliveryResult.Attempt);
+
+                var result = await SendCoreAsync(job, integration, ct);
+
+                if (result.Status > DeliveryStatus.Attempt)
+                {
+                    await UpdateAsync(job, result);
+                }
+            }
+            catch (Exception ex)
+            {
+                await LogStore.LogAsync(job.Notification.AppId, LogMessage.General_InternalException(Name, ex));
+                throw;
             }
         }
     }
 
-    private async Task UpdateAsync(WebhookJob job, ProcessStatus status, string? reason = null)
+    private Task<DeliveryResult> SendCoreAsync(WebhookJob job, ResolvedIntegration<IWebhookSender> integration,
+        CancellationToken ct)
     {
-        // We only track the initial publication.
-        if (!job.IsUpdate)
+        var message = new WebhookMessage
         {
-            await userNotificationStore.TrackAsync(job.Tracking, status, reason);
-        }
-    }
+            Payload = job.Notification
+        };
 
-    private static bool ShouldSend(WebhookDefinition webhook, bool isUpdate, string? name)
-    {
-        if (webhook.SendAlways)
-        {
-            return true;
-        }
-
-        if (isUpdate)
-        {
-            return webhook.SendConfirm;
-        }
-        else
-        {
-            return !string.IsNullOrWhiteSpace(name) && string.Equals(name, webhook.Name, StringComparison.Ordinal);
-        }
+        return integration.System.SendAsync(integration.Context, message.Enrich(job, Name), ct);
     }
 }

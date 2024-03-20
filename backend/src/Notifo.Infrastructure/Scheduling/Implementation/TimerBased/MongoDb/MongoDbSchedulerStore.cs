@@ -5,6 +5,7 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using NodaTime;
 using Notifo.Infrastructure.MongoDb;
@@ -14,6 +15,17 @@ namespace Notifo.Infrastructure.Scheduling.Implementation.TimerBased.MongoDb;
 public sealed class MongoDbSchedulerStore<T> : MongoDbRepository<SchedulerBatch<T>>, ISchedulerStore<T>
 {
     private readonly SchedulerOptions options;
+
+    static MongoDbSchedulerStore()
+    {
+        BsonClassMap.RegisterClassMap<SchedulerBatch<T>>(cm =>
+        {
+            cm.AutoMap();
+
+            cm.MapProperty(x => x.GroupKey)
+                .SetElementName("Key");
+        });
+    }
 
     public MongoDbSchedulerStore(IMongoDatabase database, SchedulerOptions options)
         : base(database)
@@ -32,7 +44,7 @@ public sealed class MongoDbSchedulerStore<T> : MongoDbRepository<SchedulerBatch<
         await collection.Indexes.CreateOneAsync(
             new CreateIndexModel<SchedulerBatch<T>>(
                 IndexKeys
-                    .Ascending(x => x.Key)
+                    .Ascending(x => x.GroupKey)
                     .Ascending(x => x.Progressing)
                     .Ascending(x => x.DueTime)),
             null, ct);
@@ -87,38 +99,38 @@ public sealed class MongoDbSchedulerStore<T> : MongoDbRepository<SchedulerBatch<
         }
     }
 
-    public async Task EnqueueGroupedAsync(string key, T job, Instant delay, int retryCount = 0,
+    public async Task EnqueueGroupedAsync(string key, string groupKey, T job, Instant dueTime, int retryCount = 0,
         CancellationToken ct = default)
     {
         using (Telemetry.Activities.StartActivity("MongoDbSchedulerStore/EnqueueGroupedAsync"))
         {
-            await Collection.UpdateOneAsync(x => x.Key == key && !x.Progressing && x.DueTime <= delay,
+            await Collection.UpdateOneAsync(x => x.GroupKey == groupKey && !x.Progressing && x.DueTime <= dueTime,
                 Update
-                    .Min(x => x.DueTime, delay)
                     .SetOnInsert(x => x.Id, Guid.NewGuid().ToString())
-                    .SetOnInsert(x => x.Key, key)
+                    .SetOnInsert(x => x.DueTime, dueTime)
+                    .SetOnInsert(x => x.GroupKey, groupKey)
                     .SetOnInsert(x => x.Progressing, false)
                     .SetOnInsert(x => x.ProgressingStarted, null)
                     .SetOnInsert(x => x.RetryCount, retryCount)
-                    .AddToSet(x => x.Jobs, job),
+                    .Set($"JobsV2.{key}", job),
                 Upsert, ct);
         }
     }
 
-    public async Task EnqueueScheduledAsync(string key, T job, Instant dueTime, int retryCount = 0,
+    public async Task EnqueueAsync(string key, T job, Instant dueTime, int retryCount = 0,
         CancellationToken ct = default)
     {
         using (Telemetry.Activities.StartActivity("MongoDbSchedulerStore/EnqueueScheduledAsync"))
         {
-            await Collection.UpdateOneAsync(x => x.Key == key && !x.Progressing,
+            await Collection.UpdateOneAsync(x => x.GroupKey == key && !x.Progressing,
                 Update
-                    .SetOnInsert(x => x.DueTime, dueTime)
                     .SetOnInsert(x => x.Id, Guid.NewGuid().ToString())
-                    .SetOnInsert(x => x.Key, key)
+                    .SetOnInsert(x => x.DueTime, dueTime)
+                    .SetOnInsert(x => x.GroupKey, key)
                     .SetOnInsert(x => x.Progressing, false)
                     .SetOnInsert(x => x.ProgressingStarted, null)
                     .SetOnInsert(x => x.RetryCount, retryCount)
-                    .SetOnInsert(x => x.Jobs, new List<T> { job }),
+                    .Set($"JobsV2.{key}", job),
                 Upsert, ct);
         }
     }
@@ -132,12 +144,35 @@ public sealed class MongoDbSchedulerStore<T> : MongoDbRepository<SchedulerBatch<
         }
     }
 
-    public async Task CompleteByKeyAsync(string key,
+    public async Task<bool> CompleteByKeyAsync(string key,
         CancellationToken ct = default)
     {
         using (Telemetry.Activities.StartActivity("MongoDbSchedulerStore/CompleteByKeyAsync"))
         {
-            await Collection.DeleteOneAsync(x => x.Key == key, ct);
+            var result = await Collection.DeleteOneAsync(x => x.GroupKey == key, ct);
+
+            return result.DeletedCount == 1;
+        }
+    }
+
+    public async Task<bool> CompleteByKeyAsync(string key, string groupKey,
+        CancellationToken ct = default)
+    {
+        using (Telemetry.Activities.StartActivity("MongoDbSchedulerStore/CompleteByKeyAsync"))
+        {
+            var result =
+                await Collection.FindOneAndUpdateAsync(x => x.GroupKey == groupKey,
+                    Update.Unset($"JobsV2.{key}"),
+                    cancellationToken: ct);
+
+            var hasDeleted = result?.JobsV2?.ContainsKey(key) == true;
+
+            if (result?.JobsV2?.Count == 1 && hasDeleted)
+            {
+                await Collection.DeleteOneAsync(x => x.Id == result.Id, ct);
+            }
+
+            return hasDeleted;
         }
     }
 }

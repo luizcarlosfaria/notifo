@@ -6,11 +6,13 @@
 // ==========================================================================
 
 using System.ComponentModel.DataAnnotations;
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Domain;
 using Notifo.Domain.Subscriptions;
 
 namespace Notifo.Areas.Api.Controllers.Users.Dtos;
 
+[OpenApiRequest]
 public sealed class SubscribeDto
 {
     /// <summary>
@@ -24,6 +26,16 @@ public sealed class SubscribeDto
     /// </summary>
     public Dictionary<string, ChannelSettingDto>? TopicSettings { get; set; }
 
+    /// <summary>
+    /// The scheduling settings.
+    /// </summary>
+    public SchedulingDto? Scheduling { get; set; }
+
+    /// <summary>
+    /// Indicates whether scheduling should be overriden.
+    /// </summary>
+    public bool HasScheduling { get; set; }
+
     public Subscribe ToUpdate(string userId)
     {
         var result = new Subscribe
@@ -31,9 +43,9 @@ public sealed class SubscribeDto
             Topic = new TopicId(TopicPrefix)
         };
 
-        if (TopicSettings?.Any() == true)
+        if (TopicSettings?.Count > 0)
         {
-            result.TopicSettings = new ChannelSettings();
+            result.TopicSettings = [];
 
             foreach (var (key, value) in TopicSettings)
             {
@@ -44,6 +56,8 @@ public sealed class SubscribeDto
             }
         }
 
+        result.Scheduling = Scheduling?.ToDomainObject();
+        result.HasScheduling = HasScheduling;
         result.UserId = userId;
 
         return result;

@@ -5,7 +5,6 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.Runtime.Serialization;
 using System.Text;
 
 namespace Notifo.Infrastructure.Validation;
@@ -33,19 +32,6 @@ public class ValidationException : DomainException
         Errors = errors;
     }
 
-    protected ValidationException(SerializationInfo info, StreamingContext context)
-        : base(info, context)
-    {
-        Errors = (List<ValidationError>)info.GetValue(nameof(Errors), typeof(List<ValidationError>))!;
-    }
-
-    public override void GetObjectData(SerializationInfo info, StreamingContext context)
-    {
-        info.AddValue(nameof(Errors), Errors);
-
-        base.GetObjectData(info, context);
-    }
-
     private static string FormatMessage(IReadOnlyList<ValidationError> errors)
     {
         Guard.NotNull(errors);
@@ -58,6 +44,28 @@ public class ValidationException : DomainException
 
             if (!string.IsNullOrWhiteSpace(error))
             {
+                var properties = errors[i].PropertyNames;
+
+                if (properties.Any())
+                {
+                    var isFirst = true;
+
+                    foreach (var property in properties)
+                    {
+                        if (!isFirst)
+                        {
+                            sb.Append(',');
+                            sb.Append(' ');
+                        }
+
+                        sb.Append(property);
+                        isFirst = false;
+                    }
+
+                    sb.Append(':');
+                    sb.Append(' ');
+                }
+
                 sb.Append(error);
 
                 if (!error.EndsWith(".", StringComparison.OrdinalIgnoreCase))

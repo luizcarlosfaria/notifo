@@ -16,7 +16,7 @@ import { deleteMedia, loadMedia, uploadMedia, useApp, useMedia } from '@app/stat
 import { texts } from '@app/texts';
 
 export const MediaPage = () => {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const media = useMedia(x => x.media);
@@ -55,7 +55,7 @@ export const MediaPage = () => {
                             {media.isLoading ? (
                                 <Loader visible={media.isLoading} />
                             ) : (
-                                <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tip={texts.common.refresh}>
+                                <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.refresh}>
                                     <Icon className='text-lg' type='refresh' />
                                 </Button>
                             )}

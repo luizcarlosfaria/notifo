@@ -6,10 +6,12 @@
 // ==========================================================================
 
 using System.ComponentModel.DataAnnotations;
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Domain.Users;
 
 namespace Notifo.Areas.Api.Controllers.Users.Dtos;
 
+[OpenApiRequest]
 public sealed class AddAllowedTopicDto
 {
     /// <summary>
@@ -22,10 +24,11 @@ public sealed class AddAllowedTopicDto
     {
         var result = new AddUserAllowedTopic
         {
-            Prefix = Prefix
-        };
+            Prefix = Prefix,
 
-        result.UserId = userId;
+            // User ID is coming from the route in this context.
+            UserId = userId
+        };
 
         return result;
     }

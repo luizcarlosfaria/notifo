@@ -10,7 +10,7 @@ import { toast } from 'react-toastify';
 import { Middleware } from 'redux';
 import { formatError, listThunk, Query } from '@app/framework';
 import { Clients, MediaDto } from '@app/service';
-import { createApiThunk, selectApp } from '../shared';
+import { createApiThunk, selectApp } from './../shared';
 import { MediaState } from './state';
 
 const list = listThunk<MediaState, MediaDto>('media', 'media', async params => {
@@ -25,7 +25,7 @@ export const loadMedia = (appId: string, query?: Partial<Query>, reset = false) 
 
 export const uploadMedia = createApiThunk('media/upload',
     async (arg: { appId: string; file: File }) => {
-        await Clients.Media.upload(arg.appId, arg.file);
+        await Clients.Media.upload(arg.appId, { data: arg.file, fileName: arg.file.name });
     });
 
 export const deleteMedia = createApiThunk('media/delete',

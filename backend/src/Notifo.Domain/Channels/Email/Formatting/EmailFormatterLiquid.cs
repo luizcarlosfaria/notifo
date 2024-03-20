@@ -5,59 +5,48 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using Fluid;
-using Mjml.Net;
 using Notifo.Domain.Apps;
+using Notifo.Domain.Integrations;
 using Notifo.Domain.Resources;
 using Notifo.Domain.Users;
 using Notifo.Domain.Utils;
 using Notifo.Infrastructure;
+using Notifo.Infrastructure.Reflection.Internal;
 
 namespace Notifo.Domain.Channels.Email.Formatting;
 
-public sealed partial class EmailFormatterLiquid : EmailFormatterBase, IEmailFormatter
+public sealed class EmailFormatterLiquid : IEmailFormatter
 {
-    private static readonly TemplateOptions Options = new TemplateOptions();
-    private static readonly string DefaultBodyHtml;
-    private static readonly string DefaultBodyText;
-    private static readonly string DefaultSubject;
+    private readonly string defaultBodyHtml;
+    private readonly string defaultBodyText;
+    private readonly string defaultSubject;
     private readonly IImageFormatter imageFormatter;
     private readonly IEmailUrl emailUrl;
 
-    static EmailFormatterLiquid()
+    public EmailFormatterLiquid(IImageFormatter imageFormatter, IEmailUrl emailUrl)
     {
-        Options.MemberAccessStrategy.IgnoreCasing = true;
-        Options.MemberAccessStrategy.Register<App>();
-        Options.MemberAccessStrategy.Register<EmailNotification>();
-        Options.MemberAccessStrategy.Register<EmailNotification[]>();
-        Options.MemberAccessStrategy.Register<User>();
-
-        DefaultBodyHtml = ReadResource("DefaultHtml.liquid.mjml");
-        DefaultBodyText = ReadResource("DefaultText.liquid.text");
-        DefaultSubject = ReadResource("DefaultSubject.text");
-    }
-
-    public EmailFormatterLiquid(IImageFormatter imageFormatter, IEmailUrl emailUrl, IMjmlRenderer mjmlRenderer)
-        : base(mjmlRenderer)
-    {
-        this.imageFormatter = imageFormatter;
         this.emailUrl = emailUrl;
+
+        string ReadResource(string name)
+        {
+            return GetType().Assembly.GetManifestResourceString($"Notifo.Domain.Channels.Email.Formatting.{name}")!;
+        }
+
+        defaultBodyHtml = ReadResource("DefaultHtml.liquid.mjml");
+        defaultBodyText = ReadResource("DefaultText.liquid.text");
+        defaultSubject = ReadResource("DefaultSubject.text");
+
+        this.imageFormatter = imageFormatter;
     }
 
-    public bool Accepts(string? kind)
-    {
-        return string.Equals(kind, "Liquid", StringComparison.OrdinalIgnoreCase);
-    }
-
-    public ValueTask<EmailTemplate> CreateInitialAsync(string? kind = null,
+    public ValueTask<EmailTemplate> CreateInitialAsync(
         CancellationToken ct = default)
     {
         var template = new EmailTemplate
         {
-            Kind = kind,
-            BodyHtml = DefaultBodyHtml,
-            BodyText = DefaultBodyText,
-            Subject = DefaultSubject
+            BodyHtml = defaultBodyHtml,
+            BodyText = defaultBodyText,
+            Subject = defaultSubject
         };
 
         return new ValueTask<EmailTemplate>(template);
@@ -66,7 +55,7 @@ public sealed partial class EmailFormatterLiquid : EmailFormatterBase, IEmailFor
     public ValueTask<EmailTemplate> ParseAsync(EmailTemplate input, bool strict,
         CancellationToken ct = default)
     {
-        var context = Context.Create(PreviewData.Jobs, PreviewData.App, PreviewData.User, imageFormatter, emailUrl);
+        var context = EmailContext.Create(PreviewData.Jobs, PreviewData.App, PreviewData.User, imageFormatter, emailUrl);
 
         Format(input, context, true, strict);
 
@@ -81,14 +70,14 @@ public sealed partial class EmailFormatterLiquid : EmailFormatterBase, IEmailFor
     public ValueTask<FormattedEmail> FormatAsync(EmailTemplate input, IReadOnlyList<EmailJob> jobs, App app, User user, bool noCache = false,
         CancellationToken ct = default)
     {
-        var context = Context.Create(jobs, app, user, imageFormatter, emailUrl);
+        var context = EmailContext.Create(jobs, app, user, imageFormatter, emailUrl);
 
         var message = Format(input, context, noCache, false);
 
         return new ValueTask<FormattedEmail>(new FormattedEmail(message, context.Errors));
     }
 
-    private EmailMessage Format(EmailTemplate template, Context context, bool noCache, bool strict)
+    private static EmailMessage Format(EmailTemplate template, EmailContext context, bool noCache, bool strict)
     {
         var subject = string.Empty;
 
@@ -126,18 +115,18 @@ public sealed partial class EmailFormatterLiquid : EmailFormatterBase, IEmailFor
 
         if (string.IsNullOrWhiteSpace(bodyHtml) && string.IsNullOrWhiteSpace(bodyText))
         {
-            context.AddError(Texts.Email_TemplateUndefined, EmailTemplateType.General);
+            context.AddError(EmailTemplateType.General, Texts.Email_TemplateUndefined);
         }
 
         return message;
     }
 
-    private static string? FormatSubject(string template, Context context)
+    private static string? FormatSubject(string template, EmailContext context)
     {
         return RenderTemplate(template, context, EmailTemplateType.Subject, false);
     }
 
-    private static string? FormatText(string template, Context context)
+    private static string? FormatText(string template, EmailContext context)
     {
         var result = RenderTemplate(template, context, EmailTemplateType.BodyText, false);
 
@@ -146,35 +135,35 @@ public sealed partial class EmailFormatterLiquid : EmailFormatterBase, IEmailFor
         return result;
     }
 
-    private string? FormatBodyHtml(string template, Context context, bool noCache, bool strict)
+    private static string? FormatBodyHtml(string template, EmailContext context, bool noCache, bool strict)
     {
         var result = RenderTemplate(template, context, EmailTemplateType.BodyHtml, noCache);
 
         context.ValidateTemplate(result, EmailTemplateType.BodyHtml);
 
-        var (html, mjmlErrors) = MjmlToHtml(result, strict);
+        var (rendered, errors) = MjmlRenderer.Render(result, strict);
 
-        foreach (var mjmlError in mjmlErrors.OrEmpty())
+        foreach (var error in errors.OrEmpty())
         {
-            context.AddError(mjmlError.Error, EmailTemplateType.BodyHtml, mjmlError.Line, mjmlError.Column);
+            context.AddError(EmailTemplateType.BodyHtml, error);
         }
 
-        return AddTrackingLinks(html, context);
+        return AddTrackingLinks(rendered, context);
     }
 
-    private static string? RenderTemplate(string template, Context context, EmailTemplateType type, bool noCache)
+    private static string? RenderTemplate(string template, EmailContext context, EmailTemplateType type, bool noCache)
     {
-        var (fluidTemplate, error) = TemplateCache.Parse(template, noCache);
+        var (rendered, errors) = context.Liquid.Render(template, noCache);
 
-        if (error != null)
+        foreach (var error in errors.OrEmpty())
         {
-            context.AddError(error.Message, type, error.Line, error.Column);
+            context.AddError(type, error);
         }
 
-        return fluidTemplate?.Render(context.TemplateContext);
+        return rendered;
     }
 
-    private static string? AddTrackingLinks(string? html, Context context)
+    private static string? AddTrackingLinks(string? html, EmailContext context)
     {
         if (string.IsNullOrWhiteSpace(html))
         {

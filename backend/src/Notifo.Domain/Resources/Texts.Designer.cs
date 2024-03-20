@@ -97,65 +97,11 @@ namespace Notifo.Domain.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Cannot find language {0} in template &apos;{1}&apos;..
-        /// </summary>
-        internal static string ChannelTemplate_LanguageNotFound {
-            get {
-                return ResourceManager.GetString("ChannelTemplate_LanguageNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Cannot find template &apos;{0}&apos;..
-        /// </summary>
-        internal static string ChannelTemplate_NotFound {
-            get {
-                return ResourceManager.GetString("ChannelTemplate_NotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Cannot find named template {0}, falling back to primary..
-        /// </summary>
-        internal static string ChannelTemplate_ResolvedWithFallback {
-            get {
-                return ResourceManager.GetString("ChannelTemplate_ResolvedWithFallback", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Integration has been removed..
-        /// </summary>
-        internal static string Email_ConfigReset {
-            get {
-                return ResourceManager.GetString("Email_ConfigReset", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Email template does not render notification subject, loop over notification and use &apos;{{ notification.subject }}&apos;..
         /// </summary>
-        internal static string Email_TemplateLiquidInvalid {
+        internal static string Email_TemplateInvalid {
             get {
-                return ResourceManager.GetString("Email_TemplateLiquidInvalid", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Email template does not render notification subject, add &apos;{{ notification.subject }}&apos; to each template..
-        /// </summary>
-        internal static string Email_TemplateNormalInvalid {
-            get {
-                return ResourceManager.GetString("Email_TemplateNormalInvalid", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Template must have a default template for notifcations, add &apos;&lt;!-- START: NOTIFICATION --&gt;&apos;..
-        /// </summary>
-        internal static string Email_TemplateNormalNoItem {
-            get {
-                return ResourceManager.GetString("Email_TemplateNormalNoItem", resourceCulture);
+                return ResourceManager.GetString("Email_TemplateInvalid", resourceCulture);
             }
         }
         
@@ -169,83 +115,11 @@ namespace Notifo.Domain.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to User has been deleted before sending email..
-        /// </summary>
-        internal static string Email_UserDeleted {
-            get {
-                return ResourceManager.GetString("Email_UserDeleted", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to User has no email address anymore..
-        /// </summary>
-        internal static string Email_UserNoEmail {
-            get {
-                return ResourceManager.GetString("Email_UserNoEmail", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Email template generates unknown error..
         /// </summary>
-        internal static string EmailUnknownErrror {
+        internal static string Email_UnknownErrror {
             get {
-                return ResourceManager.GetString("EmailUnknownErrror", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Event with this id has already been processed..
-        /// </summary>
-        internal static string Events_AlreadyProcessed {
-            get {
-                return ResourceManager.GetString("Events_AlreadyProcessed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Failed to create event..
-        /// </summary>
-        internal static string Events_CreationFailed {
-            get {
-                return ResourceManager.GetString("Events_CreationFailed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Event has neither a subject nor a template code..
-        /// </summary>
-        internal static string Events_NoSubjectOrTemplateCode {
-            get {
-                return ResourceManager.GetString("Events_NoSubjectOrTemplateCode", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Event has no subscriber..
-        /// </summary>
-        internal static string Events_NoSubscriber {
-            get {
-                return ResourceManager.GetString("Events_NoSubscriber", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Event has no topic..
-        /// </summary>
-        internal static string Events_NoTopic {
-            get {
-                return ResourceManager.GetString("Events_NoTopic", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Event is too old and will be skipped..
-        /// </summary>
-        internal static string Events_TooOld {
-            get {
-                return ResourceManager.GetString("Events_TooOld", resourceCulture);
+                return ResourceManager.GetString("Email_UnknownErrror", resourceCulture);
             }
         }
         
@@ -331,69 +205,6 @@ namespace Notifo.Domain.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Integration has been removed..
-        /// </summary>
-        internal static string Messaging_ConfigReset {
-            get {
-                return ResourceManager.GetString("Messaging_ConfigReset", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Integration has been removed..
-        /// </summary>
-        internal static string MobilePush_ConfigReset {
-            get {
-                return ResourceManager.GetString("MobilePush_ConfigReset", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Token has been removed..
-        /// </summary>
-        internal static string MobilePush_TokenRemoved {
-            get {
-                return ResourceManager.GetString("MobilePush_TokenRemoved", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Notification has already been processed..
-        /// </summary>
-        internal static string Notification_AlreadyProcessed {
-            get {
-                return ResourceManager.GetString("Notification_AlreadyProcessed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Notification has no existing app. It has probably been deleted..
-        /// </summary>
-        internal static string Notification_NoApp {
-            get {
-                return ResourceManager.GetString("Notification_NoApp", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Notification has no subject for user..
-        /// </summary>
-        internal static string Notification_NoSubject {
-            get {
-                return ResourceManager.GetString("Notification_NoSubject", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Notification has no existing user. It has probably been deleted..
-        /// </summary>
-        internal static string Notification_NoUser {
-            get {
-                return ResourceManager.GetString("Notification_NoUser", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Contributor &apos;{{user}} been added to app &apos;{{app}}&apos;..
         /// </summary>
         internal static string NotificationContributorCreated {
@@ -448,29 +259,11 @@ namespace Notifo.Domain.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Integration has been removed..
+        ///   Looks up a localized string similar to Unhandled template error..
         /// </summary>
-        internal static string Sms_ConfigReset {
+        internal static string TemplateError {
             get {
-                return ResourceManager.GetString("Sms_ConfigReset", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Template &apos;{0}&apos; has no subject..
-        /// </summary>
-        internal static string Template_NoSubject {
-            get {
-                return ResourceManager.GetString("Template_NoSubject", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to User has unsupported language &apos;{0}&apos;, using &apos;{1}&apos; instead..
-        /// </summary>
-        internal static string UserLanguage_NotValid {
-            get {
-                return ResourceManager.GetString("UserLanguage_NotValid", resourceCulture);
+                return ResourceManager.GetString("TemplateError", resourceCulture);
             }
         }
         
@@ -534,132 +327,6 @@ namespace Notifo.Domain.Resources {
         internal static string ValidationUrl {
             get {
                 return ResourceManager.GetString("ValidationUrl", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Make a HTTP request to your server when a notification is confirmed by a User..
-        /// </summary>
-        internal static string Webhook_Description {
-            get {
-                return ResourceManager.GetString("Webhook_Description", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The HTTP method.
-        /// </summary>
-        internal static string Webhook_MethodHints {
-            get {
-                return ResourceManager.GetString("Webhook_MethodHints", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Method.
-        /// </summary>
-        internal static string Webhook_MethodLabel {
-            get {
-                return ResourceManager.GetString("Webhook_MethodLabel", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The optional name when defining a template..
-        /// </summary>
-        internal static string Webhook_NameHints {
-            get {
-                return ResourceManager.GetString("Webhook_NameHints", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Name.
-        /// </summary>
-        internal static string Webhook_NameLabel {
-            get {
-                return ResourceManager.GetString("Webhook_NameLabel", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Use this webhook for all notifications..
-        /// </summary>
-        internal static string Webhook_SendAlwaysHints {
-            get {
-                return ResourceManager.GetString("Webhook_SendAlwaysHints", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Send always.
-        /// </summary>
-        internal static string Webhook_SendAlwaysLabel {
-            get {
-                return ResourceManager.GetString("Webhook_SendAlwaysLabel", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Send confirmed notifications to this webhook..
-        /// </summary>
-        internal static string Webhook_SendConfirmHints {
-            get {
-                return ResourceManager.GetString("Webhook_SendConfirmHints", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Send Confirm.
-        /// </summary>
-        internal static string Webhook_SendConfirmLabel {
-            get {
-                return ResourceManager.GetString("Webhook_SendConfirmLabel", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Send all notification to this webhook..
-        /// </summary>
-        internal static string Webhook_SendNotificationsHints {
-            get {
-                return ResourceManager.GetString("Webhook_SendNotificationsHints", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Send Always.
-        /// </summary>
-        internal static string Webhook_SendNotificationsLabel {
-            get {
-                return ResourceManager.GetString("Webhook_SendNotificationsLabel", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The URL to your server endpoint..
-        /// </summary>
-        internal static string Webhook_URLHints {
-            get {
-                return ResourceManager.GetString("Webhook_URLHints", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to URL.
-        /// </summary>
-        internal static string Webhook_URLLabel {
-            get {
-                return ResourceManager.GetString("Webhook_URLLabel", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Token does not exist anymore..
-        /// </summary>
-        internal static string WebPush_TokenRemoved {
-            get {
-                return ResourceManager.GetString("WebPush_TokenRemoved", resourceCulture);
             }
         }
     }

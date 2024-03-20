@@ -12,7 +12,7 @@ namespace Notifo.Domain.Utils;
 public class ImageFormatterTests
 {
     private readonly IUrlGenerator urlGenerator = A.Fake<IUrlGenerator>();
-    private readonly IImageFormatter sut;
+    private readonly ImageFormatter sut;
 
     public ImageFormatterTests()
     {
@@ -33,7 +33,7 @@ public class ImageFormatterTests
     [InlineData("https:/invalid")]
     [InlineData("httpx://invalid")]
     [InlineData("HTTPX://invalid")]
-    public void Should_not_add_invalid_url_to_proxy(string url)
+    public void Should_not_add_invalid_url_to_proxy(string? url)
     {
         var result = sut.AddProxy(url);
 
@@ -57,7 +57,7 @@ public class ImageFormatterTests
 
         var result = sut.AddProxy(url);
 
-        Assert.Equal($"{url}?emptyOnFailure=true", result);
+        Assert.Equal($"{url}?emptyOnFailure=True", result);
     }
 
     [Theory]
@@ -68,7 +68,7 @@ public class ImageFormatterTests
     [InlineData("https:/invalid")]
     [InlineData("httpx://invalid")]
     [InlineData("HTTPX://invalid")]
-    public void Should_not_add_preset_to_invalid_url(string url)
+    public void Should_not_add_preset_to_invalid_url(string? url)
     {
         var result = sut.AddPreset(url, "Email");
 

@@ -5,8 +5,8 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.ComponentModel.DataAnnotations;
 using Notifo.Domain.Channels.MobilePush;
+using Notifo.Domain.Integrations;
 using Notifo.Infrastructure.Reflection;
 
 namespace Notifo.Areas.Api.Controllers.MobilePush.Dtos;
@@ -16,7 +16,6 @@ public sealed class MobilePushTokenDto
     /// <summary>
     /// The device token.
     /// </summary>
-    [Required]
     public string Token { get; set; }
 
     /// <summary>

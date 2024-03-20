@@ -6,35 +6,30 @@
 // ==========================================================================
 
 using Notifo.Domain.UserNotifications;
+using Notifo.Infrastructure;
 
 namespace Notifo.Domain.Channels.Messaging;
 
 public sealed class MessagingJob : ChannelJob
 {
-    public BaseUserNotification Notification { get; init; }
-
-    public string? NotificationTemplate { get; init; }
-
-    public Dictionary<string, string> Targets { get; init; } = new Dictionary<string, string>();
+    public SendConfiguration Configuration { get; init; }
 
     public string ScheduleKey
     {
-        get => ComputeScheduleKey(Notification.Id);
+        get => string.Join('_',
+            Notification.AppId,
+            Notification.UserId,
+            Template,
+            GroupKey.OrDefault(Notification.Id));
     }
 
     public MessagingJob()
     {
     }
 
-    public MessagingJob(BaseUserNotification notification, ChannelSetting setting, Guid configurationId)
-        : base(notification, setting, configurationId, false, Providers.Email)
+    public MessagingJob(UserNotification notification, ChannelContext context)
+        : base(notification, context)
     {
-        Notification = notification;
-        NotificationTemplate = setting.Template;
-    }
-
-    public static string ComputeScheduleKey(Guid notificationId)
-    {
-        return $"{notificationId}";
+        Configuration = context.Configuration;
     }
 }

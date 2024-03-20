@@ -5,7 +5,6 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.ComponentModel.DataAnnotations;
 using NodaTime;
 using Notifo.Domain.Integrations;
 using Notifo.Domain.Users;
@@ -17,18 +16,16 @@ namespace Notifo.Areas.Api.Controllers.Users.Dtos;
 
 public sealed class UserDto
 {
-    private static readonly Dictionary<string, long> EmptyCounters = new Dictionary<string, long>();
+    private static readonly Dictionary<string, long> EmptyCounters = [];
 
     /// <summary>
     /// The id of the user.
     /// </summary>
-    [Required]
     public string Id { get; set; }
 
     /// <summary>
     /// The unique api key for the user.
     /// </summary>
-    [Required]
     public string ApiKey { get; set; }
 
     /// <summary>
@@ -59,13 +56,11 @@ public sealed class UserDto
     /// <summary>
     /// The date time (ISO 8601) when the user has been created.
     /// </summary>
-    [Required]
     public Instant Created { get; set; }
 
     /// <summary>
     /// The date time (ISO 8601) when the user has been updated.
     /// </summary>
-    [Required]
     public Instant LastUpdate { get; set; }
 
     /// <summary>
@@ -76,7 +71,6 @@ public sealed class UserDto
     /// <summary>
     /// True when only whitelisted topic are allowed.
     /// </summary>
-    [Required]
     public bool RequiresWhitelistedTopics { get; set; }
 
     /// <summary>
@@ -85,35 +79,36 @@ public sealed class UserDto
     public ReadonlyDictionary<string, string>? Properties { get; set; }
 
     /// <summary>
+    /// The scheduling settings.
+    /// </summary>
+    public SchedulingDto? Scheduling { get; set; }
+
+    /// <summary>
     /// Notification settings per channel.
     /// </summary>
-    [Required]
-    public Dictionary<string, ChannelSettingDto> Settings { get; set; } = new Dictionary<string, ChannelSettingDto>();
+    public Dictionary<string, ChannelSettingDto> Settings { get; set; } = [];
 
     /// <summary>
     /// The statistics counters.
     /// </summary>
-    [Required]
     public Dictionary<string, long> Counters { get; set; }
 
     /// <summary>
     /// The mobile push tokens.
     /// </summary>
-    [Required]
-    public List<MobilePushTokenDto> MobilePushTokens { get; set; } = new List<MobilePushTokenDto>();
+    public List<MobilePushTokenDto> MobilePushTokens { get; set; } = [];
 
     /// <summary>
     /// The web push subscriptions.
     /// </summary>
-    [Required]
-    public List<WebPushSubscriptionDto> WebPushSubscriptions { get; set; } = new List<WebPushSubscriptionDto>();
+    public List<WebPushSubscriptionDto> WebPushSubscriptions { get; set; } = [];
 
     /// <summary>
     /// The supported user properties.
     /// </summary>
     public List<UserPropertyDto>? UserProperties { get; set; }
 
-    public static UserDto FromDomainObject(User source, List<UserProperty>? userProperties, IReadOnlyDictionary<string, Instant>? lastNotifications)
+    public static UserDto FromDomainObject(User source, List<IntegrationProperty>? userProperties, IReadOnlyDictionary<string, Instant>? lastNotifications)
     {
         var result = SimpleMapper.Map(source, new UserDto());
 
@@ -136,6 +131,11 @@ public sealed class UserDto
         foreach (var token in source.MobilePushTokens.OrEmpty())
         {
             result.MobilePushTokens.Add(MobilePushTokenDto.FromDomainObject(token));
+        }
+
+        if (source.Scheduling != null)
+        {
+            result.Scheduling = SchedulingDto.FromDomainObject(source.Scheduling);
         }
 
         if (userProperties != null)

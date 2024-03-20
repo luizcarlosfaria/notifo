@@ -5,9 +5,10 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-/** @jsx h */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Fragment, h } from 'preact';
+/** @jsximportsource preact */
+
+import { Fragment } from 'preact';
 import { useCallback, useEffect } from 'preact/hooks';
 import { SDKConfig, setSubscriptionChannel, setTopic, SubscriptionsDto } from '@sdk/shared';
 import { loadSubscriptions, loadTopics, subscribe, useDispatch, useStore } from '@sdk/ui/model';
@@ -88,13 +89,13 @@ export const WebPushUI = (props: WebPushUIProps) => {
                                 {config.texts.webpushTopics}
                             </div>
 
-                            {topics.map(topic => 
+                            {topics.map(topic =>
                                 <TopicItem key={topic.path}
                                     config={config}
                                     onChangeChannel={doChangeChannel}
                                     onChangeTopic={doChangeTopic}
                                     subscription={formValue[topic.path]}
-                                    topic={topic} 
+                                    topic={topic}
                                 />,
                             )}
                         </Fragment>
@@ -111,7 +112,7 @@ export const WebPushUI = (props: WebPushUIProps) => {
                             <button class='notifo-form-button primary' onClick={doAllow}>
                                 {config.texts.allow}
                             </button>
-        
+
                             <button class='notifo-form-button' onClick={onDeny}>
                                 {config.texts.deny}
                             </button>

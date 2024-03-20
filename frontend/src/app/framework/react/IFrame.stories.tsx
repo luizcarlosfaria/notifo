@@ -5,47 +5,56 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-import { ComponentMeta } from '@storybook/react';
+import type { Meta, StoryObj } from '@storybook/react';
 import * as React from 'react';
 import { IFrame } from './IFrame';
 
-export default {
-    title: 'Framework/React/IFrame',
+const meta: Meta<typeof IFrame> = {
     component: IFrame,
-} as ComponentMeta<typeof IFrame>;
-
-const Template = (args: any, { loaded }: { loaded: any }) => {
-    return (
-        <IFrame style={{ width: '100%', height: 500 }} {...args} html={loaded.html} />
-    );
-};
-
-export const Default = Template.bind({});
-
-async function loadPage() {
-    let text: string = await (await fetch('https://notifo.io')).text();
-
-    text = text.replace(/href="/g, 'href="https://notifo.io/');
-    text = text.replace(/src="/g, 'src="https://notifo.io/');
-
-    return text;
-}
-
-Default['loaders'] = [
-    async () => ({
-        html: await loadPage(),
-    }),
-];
-
-Default['argTypes'] = {
-    html: {
-        table: {
-            disable: true,
+    argTypes: {
+        html: {
+            table: {
+                disable: true,
+            },
+        },
+        style: {
+            table: {
+                disable: true,
+            },
         },
     },
-    style: {
-        table: {
-            disable: true,
-        },
+    render: args => {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const [html, setHtml] = React.useState<string>('');
+
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        React.useEffect(() => {
+            function delay(timeout: number) {
+                return new Promise(resolve => {
+                    setTimeout(resolve, timeout);
+                });
+            }
+
+            async function load() {
+                while (true) {
+                    setHtml('<div>Content1</div>');
+                    await delay(2000);
+
+                    setHtml('<div>Content2</div>');
+                    await delay(2000);
+                }
+            }
+
+            load();
+        }, []);
+
+        return (
+            <IFrame style={{ width: '100%', height: 500 }} {...args} html={html} />
+        );
     },
 };
+
+export default meta;
+type Story = StoryObj<typeof IFrame>;
+
+export const Default: Story = {};

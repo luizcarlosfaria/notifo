@@ -22,6 +22,11 @@ export const loadEmailTemplates = (appId: string, query?: Partial<Query>, reset 
     return list.action({ appId, query, reset });
 };
 
+export const loadMjmlSchema = createApiThunk('emailTemplates/schema',
+    () => {
+        return Clients.EmailTemplates.getSchema();
+    });
+
 export const loadEmailTemplate = createApiThunk('emailTemplates/load',
     (arg: { appId: string; id: string }) => {
         return Clients.EmailTemplates.getTemplate(arg.appId, arg.id);
@@ -81,6 +86,9 @@ export const emailTemplatesReducer = createReducer(initialState, builder => list
     .addCase(selectApp, () => {
         return initialState;
     })
+    .addCase(loadMjmlSchema.fulfilled, (state, action) => {
+        state.schema = action.payload;
+    })
     .addCase(loadEmailTemplate.pending, (state) => {
         state.loadingTemplate = true;
         state.loadingTemplateError = undefined;
@@ -119,7 +127,7 @@ export const emailTemplatesReducer = createReducer(initialState, builder => list
         state.creatingLanguageError = undefined;
 
         if (state.template && state.template.id === action.meta.arg.id) {
-            state.template.languages[action.meta.arg.language] = action.payload;
+            state.template = action.payload;
         }
     })
     .addCase(updateEmailTemplate.pending, (state) => {
@@ -135,7 +143,7 @@ export const emailTemplatesReducer = createReducer(initialState, builder => list
         state.updatingError = undefined;
 
         if (state.template && state.template.id === action.meta.arg.id) {
-            state.template = { ...state.template, ...action.meta.arg.update };
+            state.template = action.payload;
         }
     })
     .addCase(updateEmailTemplateLanguage.pending, (state) => {
@@ -151,7 +159,7 @@ export const emailTemplatesReducer = createReducer(initialState, builder => list
         state.updatingLanguageError = undefined;
 
         if (state.template && state.template.id === action.meta.arg.id) {
-            state.template.languages[action.meta.arg.language] = action.meta.arg.template;
+            state.template = action.payload;
         }
     })
     .addCase(deleteEmailTemplate.pending, (state) => {
@@ -179,6 +187,6 @@ export const emailTemplatesReducer = createReducer(initialState, builder => list
         state.deletingLanguageError = undefined;
 
         if (state.template && state.template.id === action.meta.arg.id) {
-            delete state.template.languages[action.meta.arg.language];
+            state.template = action.payload;
         }
     }));

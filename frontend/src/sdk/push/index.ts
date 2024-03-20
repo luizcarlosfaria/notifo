@@ -5,7 +5,7 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-import { isFunction, logError, logWarn, SDKConfig, SubscribeOptions } from '@sdk/shared';
+import { isDev, isFunction, logError, logWarn, SDKConfig, SubscribeOptions } from '@sdk/shared';
 
 export module PUSH {
     export async function subscribe(config: SDKConfig, options?: SubscribeOptions) {
@@ -19,11 +19,10 @@ export module PUSH {
         }
 
         const serviceWorker = await registerServiceWorker(config, options);
-
-        const simpleConfig = buildConfig(config);
+        const serviceConfig = buildConfig(config);
 
         if (serviceWorker.active) {
-            serviceWorker.active.postMessage({ type: 'subscribe', config: simpleConfig });
+            serviceWorker.active.postMessage({ type: 'subscribe', config: serviceConfig });
         }
     }
 
@@ -34,11 +33,10 @@ export module PUSH {
         }
 
         const serviceWorker = await navigator.serviceWorker.ready;
-
-        const simpleConfig = buildConfig(config);
+        const serviceConfig = buildConfig(config);
 
         if (serviceWorker.active) {
-            serviceWorker.active.postMessage({ type: 'unsubscribe', config: simpleConfig });
+            serviceWorker.active.postMessage({ type: 'unsubscribe', config: serviceConfig });
         }
     }
 
@@ -50,11 +48,11 @@ export module PUSH {
 }
 
 function buildConfig(config: SDKConfig) {
-    const clonedConfig = {};
+    const clonedConfig: Record<string, any> = {};
 
     for (const key in config) {
         if (config.hasOwnProperty(key)) {
-            const value = config[key];
+            const value = (config as any)[key];
 
             if (!isFunction(value)) {
                 clonedConfig[key] = value;
@@ -107,7 +105,10 @@ async function registerServiceWorker(config: SDKConfig, options?: SubscribeOptio
 
         return await navigator.serviceWorker.ready;
     } else {
-        const serviceWorker = await navigator.serviceWorker.register(config.serviceWorkerUrl);
+        const serviceWorker =
+            isDev() ?
+                await navigator.serviceWorker.register('/src/sdk/sdk-worker.ts', { type: 'module' }) :
+                await navigator.serviceWorker.register(config.serviceWorkerUrl);
 
         await serviceWorker.update();
 

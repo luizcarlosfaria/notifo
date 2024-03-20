@@ -5,15 +5,15 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-import { Formik } from 'formik';
+import { yupResolver } from '@hookform/resolvers/yup';
 import * as React from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 import { useDispatch } from 'react-redux';
 import { Button, Form, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
 import * as Yup from 'yup';
 import { FormError, Loader, Types, useEventCallback } from '@app/framework';
 import { SubscriptionDto } from '@app/service';
 import { Forms, NotificationsForm } from '@app/shared/components';
-import { CHANNELS } from '@app/shared/utils/model';
 import { upsertSubscription, useApp, useSubscriptions } from '@app/state';
 import { texts } from '@app/texts';
 
@@ -37,7 +37,7 @@ export interface SubscriptionDialogProps {
 export const SubscriptionDialog = (props: SubscriptionDialogProps) => {
     const { onClose, subscription, userId } = props;
 
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const upserting = useSubscriptions(x => x.upserting);
@@ -57,51 +57,47 @@ export const SubscriptionDialog = (props: SubscriptionDialogProps) => {
     }, [onClose, upserting, upsertingError, wasUpserting]);
 
     const doSave = useEventCallback((params: SubscriptionDto) => {
-        dispatch(upsertSubscription({ appId, userId, params }));
+        dispatch(upsertSubscription({ appId, userId, params: params as any }));
     });
 
-    const initialValues: any = React.useMemo(() => {
-        const result: Partial<SubscriptionDto> = Types.clone(subscription || { topicPrefix: '' });
-
-        result.topicSettings ||= {};
-
-        for (const channel of CHANNELS) {
-            result.topicSettings[channel] ||= { send: 'Inherit', condition: 'Inherit' };
-        }
-
-        return result;
+    const defaultValues = React.useMemo(() => {
+        return Types.clone(subscription || { topicPrefix: '' }) as any;
     }, [subscription]);
+
+    const form = useForm<SubscriptionDto>({ resolver: yupResolver<any>(FormSchema), defaultValues, mode: 'onChange' });
 
     return (
         <Modal isOpen={true} size='lg' toggle={onClose}>
-            <Formik<SubscriptionDto> initialValues={initialValues} enableReinitialize onSubmit={doSave} validationSchema={FormSchema}>
-                {({ handleSubmit }) => (
-                    <Form onSubmit={handleSubmit}>
-                        <ModalHeader toggle={onClose}>
-                            {subscription ? texts.subscriptions.editHeader : texts.subscriptions.createHeader}
-                        </ModalHeader>
+            <FormProvider {...form}>
+                <Form onSubmit={form.handleSubmit(doSave)}>
+                    <ModalHeader toggle={onClose}>
+                        {subscription ? texts.subscriptions.editHeader : texts.subscriptions.createHeader}
+                    </ModalHeader>
 
-                        <ModalBody>
-                            <fieldset className='mt-3' disabled={upserting}>
-                                <Forms.Text name='topicPrefix'
-                                    label={texts.common.topic} />
-                            </fieldset>
+                    <ModalBody>
+                        <fieldset className='mt-3' disabled={upserting}>
+                            <Forms.Text name='topicPrefix'
+                                label={texts.common.topic} />
+                        </fieldset>
 
-                            <NotificationsForm.Settings field='topicSettings' disabled={upserting} />
+                        <NotificationsForm.Settings field='topicSettings'
+                            disabled={upserting} />
 
-                            <FormError error={upsertingError} />
-                        </ModalBody>
-                        <ModalFooter className='justify-content-between'>
-                            <Button type='button' color='none' onClick={onClose} disabled={upserting}>
-                                {texts.common.cancel}
-                            </Button>
-                            <Button type='submit' color='primary' disabled={upserting}>
-                                <Loader light small visible={upserting} /> {texts.common.save}
-                            </Button>
-                        </ModalFooter>
-                    </Form>
-                )}
-            </Formik>
+                        <NotificationsForm.Scheduling field='scheduling'
+                            disabled={upserting} />
+
+                        <FormError error={upsertingError} />
+                    </ModalBody>
+                    <ModalFooter className='justify-content-between'>
+                        <Button type='button' color='none' onClick={onClose} disabled={upserting}>
+                            {texts.common.cancel}
+                        </Button>
+                        <Button type='submit' color='primary' disabled={upserting}>
+                            <Loader light small visible={upserting} /> {texts.common.save}
+                        </Button>
+                    </ModalFooter>
+                </Form>
+            </FormProvider>
         </Modal>
     );
 };

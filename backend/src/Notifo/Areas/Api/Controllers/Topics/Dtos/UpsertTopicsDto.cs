@@ -6,9 +6,11 @@
 // ==========================================================================
 
 using System.ComponentModel.DataAnnotations;
+using Notifo.Areas.Api.OpenApi;
 
 namespace Notifo.Areas.Api.Controllers.Topics.Dtos;
 
+[OpenApiRequest]
 public sealed class UpsertTopicsDto
 {
     /// <summary>

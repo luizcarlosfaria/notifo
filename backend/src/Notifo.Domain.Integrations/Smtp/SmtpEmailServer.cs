@@ -9,17 +9,14 @@ using MailKit.Net.Smtp;
 using Microsoft.Extensions.ObjectPool;
 using MimeKit;
 using MimeKit.Text;
-using Notifo.Domain.Channels.Email;
 using Notifo.Infrastructure;
 
 namespace Notifo.Domain.Integrations.Smtp;
 
-public class SmtpEmailServer : IEmailSender, IDisposable
+public class SmtpEmailServer : IDisposable
 {
     private readonly ObjectPool<SmtpClient> clientPool;
     private readonly SmtpOptions options;
-
-    public string Name => "SMTP";
 
     public SmtpEmailServer(SmtpOptions options)
     {
@@ -39,7 +36,7 @@ public class SmtpEmailServer : IEmailSender, IDisposable
     }
 
     public async Task SendAsync(EmailMessage message,
-        CancellationToken ct = default)
+        CancellationToken ct)
     {
         var smtpClient = clientPool.Get();
         try
@@ -108,7 +105,7 @@ public class SmtpEmailServer : IEmailSender, IDisposable
     {
         if (!smtpClient.IsConnected)
         {
-            await smtpClient.ConnectAsync(options.Host, options.HostPort);
+            await smtpClient.ConnectAsync(options.HostName, options.HostPort);
         }
 
         if (string.IsNullOrWhiteSpace(options.Username) ||

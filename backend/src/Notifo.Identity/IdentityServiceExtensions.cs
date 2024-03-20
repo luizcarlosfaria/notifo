@@ -65,6 +65,7 @@ public static class IdentityServiceExtensions
             })
             .AddGoogle(identityOptions)
             .AddGithub(identityOptions)
+            .AddOidc(identityOptions)
             .AddApiKey();
     }
 
@@ -119,7 +120,7 @@ public static class IdentityServiceExtensions
         services.AddOpenIddict()
             .AddCore(builder =>
             {
-                builder.UseMongoDb<string>();
+                builder.UseMongoDb();
 
                 builder.SetDefaultScopeEntity<ImmutableScope>();
 

@@ -22,15 +22,28 @@ public class EmailTemplatePreviewController : BaseController
 {
     private readonly IEmailFormatter emailFormatter;
     private readonly IEmailTemplateStore emailTemplateStore;
+    private readonly MjmlSchema mjmlSchema;
 
     public object PreviewType { get; private set; }
 
     public EmailTemplatePreviewController(
         IEmailFormatter emailFormatter,
-        IEmailTemplateStore emailTemplateStore)
+        IEmailTemplateStore emailTemplateStore,
+        MjmlSchema mjmlSchema)
     {
         this.emailFormatter = emailFormatter;
         this.emailTemplateStore = emailTemplateStore;
+        this.mjmlSchema = mjmlSchema;
+    }
+
+    /// <summary>
+    /// Gets the mjml schema.
+    /// </summary>
+    [HttpGet("api/mjml/schema")]
+    [Produces(typeof(MjmlSchema))]
+    public IActionResult GetSchema()
+    {
+        return Ok(mjmlSchema);
     }
 
     /// <summary>
@@ -89,11 +102,11 @@ public class EmailTemplatePreviewController : BaseController
                 response.Result = formatted.Message?.BodyText;
             }
 
-            response.Errors = formatted.Errors?.ToArray();
+            response.Errors = formatted.Errors?.Select(EmailPreviewErrorDto.FromDomainObject).ToArray();
         }
         catch (EmailFormattingException ex)
         {
-            response.Errors = ex.Errors.ToArray();
+            response.Errors = ex.Errors.Select(EmailPreviewErrorDto.FromDomainObject).ToArray();
         }
 
         return Ok(response);
@@ -101,10 +114,11 @@ public class EmailTemplatePreviewController : BaseController
 
     private async ValueTask<FormattedEmail> FormatAsync(EmailTemplate emailTemplate)
     {
-        emailTemplate = await emailFormatter.ParseAsync(emailTemplate, true, HttpContext.RequestAborted);
+        await emailFormatter.ParseAsync(emailTemplate, true, HttpContext.RequestAborted);
 
         return await emailFormatter.FormatAsync(emailTemplate,
-            PreviewData.Jobs, App,
+            PreviewData.Jobs,
+            App,
             PreviewData.User,
             true,
             HttpContext.RequestAborted);

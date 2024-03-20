@@ -9,6 +9,8 @@
 
 type QueueItem = () => Promise<any>;
 
+const IS_DEV = typeof window !== 'undefined' && (window.location.host.indexOf('localhost:3002') >= 0 || window.location.host.indexOf('localhost:5002') >= 0);
+
 export class JobQueue {
     private readonly queue: QueueItem[] = [];
     private running?: QueueItem;
@@ -40,6 +42,10 @@ export class JobQueue {
             this.execute(next);
         }
     }
+}
+
+export function isDev() {
+    return IS_DEV;
 }
 
 export function isArray(value: any): value is any[] {
@@ -104,6 +110,15 @@ export function combineUrl(baseUrl: string, relativeUrl: string) {
     }
 
     return `${b}/${r}`;
+}
+
+export function getHostName(url: string) {
+    try {
+        return new URL(url).host;
+    } catch {
+        // URL is very likely relative.
+        return undefined;
+    }
 }
 
 export function delayTime(ms: number) {

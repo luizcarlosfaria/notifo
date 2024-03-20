@@ -8,6 +8,7 @@
 using MongoDB.Bson;
 using NodaTime;
 using Notifo.Domain.Channels;
+using Notifo.Domain.Integrations;
 using Notifo.Infrastructure;
 
 #pragma warning disable SA1300 // Element should begin with upper-case letter
@@ -76,21 +77,20 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         await _.Repository.InsertAsync(notification1, default);
         await _.Repository.InsertAsync(notification2, default);
 
-        var updateStatus = ProcessStatus.Handled;
-        var updateDetail = "Update Details";
+        var result = new DeliveryResult(DeliveryStatus.Handled, "Update Details");
 
-        await _.Repository.BatchWriteAsync(new (TrackingToken Token, ProcessStatus Status, string? Detail)[]
-        {
-            (new TrackingToken(notification1.Id, channel, configurationId1), updateStatus, updateDetail),
-            (new TrackingToken(notification1.Id, channel, configurationId2), updateStatus, updateDetail),
-            (new TrackingToken(notification2.Id, channel, configurationId1), updateStatus, updateDetail),
-            (new TrackingToken(notification2.Id, channel, configurationId2), updateStatus, updateDetail),
-        }, now, default);
+        await _.Repository.BatchWriteAsync(
+        [
+            (new TrackingToken(notification1.Id, channel, configurationId1), result),
+            (new TrackingToken(notification1.Id, channel, configurationId2), result),
+            (new TrackingToken(notification2.Id, channel, configurationId1), result),
+            (new TrackingToken(notification2.Id, channel, configurationId2), result),
+        ], now, default);
 
-        UpdateStatus(notification1, channel, configurationId1, updateStatus, updateDetail);
-        UpdateStatus(notification1, channel, configurationId2, updateStatus, updateDetail);
-        UpdateStatus(notification2, channel, configurationId1, updateStatus, updateDetail);
-        UpdateStatus(notification2, channel, configurationId2, updateStatus, updateDetail);
+        UpdateStatus(notification1, channel, configurationId1, result);
+        UpdateStatus(notification1, channel, configurationId2, result);
+        UpdateStatus(notification2, channel, configurationId1, result);
+        UpdateStatus(notification2, channel, configurationId2, result);
 
         var notifications1 = await _.Repository.QueryAsync(appId, userId1, new UserNotificationQuery(), default);
         var notifications2 = await _.Repository.QueryAsync(appId, userId2, new UserNotificationQuery(), default);
@@ -108,21 +108,20 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         await _.Repository.InsertAsync(notification1, default);
         await _.Repository.InsertAsync(notification2, default);
 
-        var updateStatus = ProcessStatus.Handled;
-        var updateDetail = "Update Details";
+        var result = new DeliveryResult(DeliveryStatus.Handled, "Update Details");
 
-        await _.Repository.BatchWriteAsync(new (TrackingToken Token, ProcessStatus Status, string? Detail)[]
-        {
-            (new TrackingToken(notification1.Id, channel, default, configuration1), updateStatus, updateDetail),
-            (new TrackingToken(notification1.Id, channel, default, configuration2), updateStatus, updateDetail),
-            (new TrackingToken(notification2.Id, channel, default, configuration1), updateStatus, updateDetail),
-            (new TrackingToken(notification2.Id, channel, default, configuration2), updateStatus, updateDetail),
-        }, now, default);
+        await _.Repository.BatchWriteAsync(
+        [
+            (new TrackingToken(notification1.Id, channel, default, configuration1), result),
+            (new TrackingToken(notification1.Id, channel, default, configuration2), result),
+            (new TrackingToken(notification2.Id, channel, default, configuration1), result),
+            (new TrackingToken(notification2.Id, channel, default, configuration2), result),
+        ], now, default);
 
-        UpdateStatus(notification1, channel, configurationId1, updateStatus, updateDetail);
-        UpdateStatus(notification1, channel, configurationId2, updateStatus, updateDetail);
-        UpdateStatus(notification2, channel, configurationId1, updateStatus, updateDetail);
-        UpdateStatus(notification2, channel, configurationId2, updateStatus, updateDetail);
+        UpdateStatus(notification1, channel, configurationId1, result);
+        UpdateStatus(notification1, channel, configurationId2, result);
+        UpdateStatus(notification2, channel, configurationId1, result);
+        UpdateStatus(notification2, channel, configurationId2, result);
 
         var notifications1 = await _.Repository.QueryAsync(appId, userId1, new UserNotificationQuery(), default);
         var notifications2 = await _.Repository.QueryAsync(appId, userId2, new UserNotificationQuery(), default);
@@ -140,13 +139,13 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         await _.Repository.InsertAsync(notification1, default);
         await _.Repository.InsertAsync(notification2, default);
 
-        var updateStatus = ProcessStatus.Handled;
+        var result = new DeliveryResult(DeliveryStatus.Handled, "Update Details");
 
-        await _.Repository.BatchWriteAsync(new (TrackingToken Token, ProcessStatus Status, string? Detail)[]
-        {
-            (new TrackingToken(notification1.Id), updateStatus, null),
-            (new TrackingToken(notification2.Id), updateStatus, null),
-        }, now, default);
+        await _.Repository.BatchWriteAsync(
+        [
+            (new TrackingToken(notification1.Id), result),
+            (new TrackingToken(notification2.Id), result),
+        ], now, default);
 
         var notifications1 = await _.Repository.QueryAsync(appId, userId1, new UserNotificationQuery(), default);
         var notifications2 = await _.Repository.QueryAsync(appId, userId2, new UserNotificationQuery(), default);
@@ -164,13 +163,13 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         await _.Repository.InsertAsync(notification1, default);
         await _.Repository.InsertAsync(notification2, default);
 
-        var updateStatus = ProcessStatus.Handled;
+        var result = new DeliveryResult(DeliveryStatus.Handled, "Update Details");
 
-        await _.Repository.BatchWriteAsync(new (TrackingToken Token, ProcessStatus Status, string? Detail)[]
-        {
-            (new TrackingToken(notification1.Id, channel), updateStatus, null),
-            (new TrackingToken(notification2.Id, channel), updateStatus, null),
-        }, now, default);
+        await _.Repository.BatchWriteAsync(
+        [
+            (new TrackingToken(notification1.Id, channel), result),
+            (new TrackingToken(notification2.Id, channel), result),
+        ], now, default);
 
         var notifications1 = await _.Repository.QueryAsync(appId, userId1, new UserNotificationQuery(), default);
         var notifications2 = await _.Repository.QueryAsync(appId, userId2, new UserNotificationQuery(), default);
@@ -185,7 +184,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackDeliveredAsync(new[] { new TrackingToken(notification.Id, channel, configurationId1) }, now, default);
+        await _.Repository.TrackDeliveredAsync([new TrackingToken(notification.Id, channel, configurationId1)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -205,7 +204,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
 
         await InsertOldRepresentation(notification);
 
-        await _.Repository.TrackDeliveredAsync(new[] { new TrackingToken(notification.Id, channel, default, configuration1) }, now, default);
+        await _.Repository.TrackDeliveredAsync([new TrackingToken(notification.Id, channel, default, configuration1)], now, default);
 
         var result = (await _.Repository.QueryAsync(appId, userId1, new UserNotificationQuery(), default)).Single();
 
@@ -218,7 +217,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackDeliveredAsync(new[] { new TrackingToken(notification.Id, channel, default, configuration1) }, now, default);
+        await _.Repository.TrackDeliveredAsync([new TrackingToken(notification.Id, channel, default, configuration1)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -237,7 +236,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackDeliveredAsync(new[] { new TrackingToken(notification.Id, channel) }, now, default);
+        await _.Repository.TrackDeliveredAsync([new TrackingToken(notification.Id, channel)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -255,7 +254,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackDeliveredAsync(new[] { new TrackingToken(notification.Id) }, now, default);
+        await _.Repository.TrackDeliveredAsync([new TrackingToken(notification.Id)], now, default);
 
         var info = new HandledInfo(now, null);
 
@@ -272,7 +271,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackSeenAsync(new[] { new TrackingToken(notification.Id, channel, configurationId1) }, now, default);
+        await _.Repository.TrackSeenAsync([new TrackingToken(notification.Id, channel, configurationId1)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -295,7 +294,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
 
         await InsertOldRepresentation(notification);
 
-        await _.Repository.TrackSeenAsync(new[] { new TrackingToken(notification.Id, channel, default, configuration1) }, now, default);
+        await _.Repository.TrackSeenAsync([new TrackingToken(notification.Id, channel, default, configuration1)], now, default);
 
         var result = (await _.Repository.QueryAsync(appId, userId1, new UserNotificationQuery(), default)).Single();
 
@@ -309,7 +308,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackSeenAsync(new[] { new TrackingToken(notification.Id, channel, default, configuration1) }, now, default);
+        await _.Repository.TrackSeenAsync([new TrackingToken(notification.Id, channel, default, configuration1)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -331,7 +330,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackSeenAsync(new[] { new TrackingToken(notification.Id, channel) }, now, default);
+        await _.Repository.TrackSeenAsync([new TrackingToken(notification.Id, channel)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -351,7 +350,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackSeenAsync(new[] { new TrackingToken(notification.Id) }, now, default);
+        await _.Repository.TrackSeenAsync([new TrackingToken(notification.Id)], now, default);
 
         var info = new HandledInfo(now, null);
 
@@ -371,7 +370,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         notification.Formatting.ConfirmMode = ConfirmMode.None;
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackConfirmedAsync(new[] { new TrackingToken(notification.Id, channel, configurationId1) }, now, default);
+        await _.Repository.TrackConfirmedAsync([new TrackingToken(notification.Id, channel, configurationId1)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -393,7 +392,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackConfirmedAsync(new[] { new TrackingToken(notification.Id, channel, configurationId1) }, now, default);
+        await _.Repository.TrackConfirmedAsync([new TrackingToken(notification.Id, channel, configurationId1)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -420,7 +419,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
 
         await InsertOldRepresentation(notification);
 
-        await _.Repository.TrackConfirmedAsync(new[] { new TrackingToken(notification.Id, channel, default, configuration1) }, now, default);
+        await _.Repository.TrackConfirmedAsync([new TrackingToken(notification.Id, channel, default, configuration1)], now, default);
 
         var result = (await _.Repository.QueryAsync(appId, userId1, new UserNotificationQuery(), default)).Single();
 
@@ -435,7 +434,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackConfirmedAsync(new[] { new TrackingToken(notification.Id, channel, default, configuration1) }, now, default);
+        await _.Repository.TrackConfirmedAsync([new TrackingToken(notification.Id, channel, default, configuration1)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -461,7 +460,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackConfirmedAsync(new[] { new TrackingToken(notification.Id, channel) }, now, default);
+        await _.Repository.TrackConfirmedAsync([new TrackingToken(notification.Id, channel)], now, default);
 
         var info = new HandledInfo(now, channel);
 
@@ -484,7 +483,7 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         var notification = CreateNotification(userId1);
 
         await _.Repository.InsertAsync(notification, default);
-        await _.Repository.TrackConfirmedAsync(new[] { new TrackingToken(notification.Id) }, now, default);
+        await _.Repository.TrackConfirmedAsync([new TrackingToken(notification.Id)], now, default);
 
         var info = new HandledInfo(now, null);
 
@@ -498,13 +497,13 @@ public class MongoDbUserNotificationRepositoryTests : IClassFixture<MongoDbUserN
         notifications1.ToArray().Should().BeEquivalentTo(new[] { notification });
     }
 
-    private void UpdateStatus(UserNotification notification, string channel, Guid configurationId, ProcessStatus status, string? detail)
+    private void UpdateStatus(UserNotification notification, string channel, Guid configurationId, DeliveryResult result)
     {
         var statusItem = notification.Channels[channel].Status[configurationId];
 
         statusItem.LastUpdate = now;
-        statusItem.Status = status;
-        statusItem.Detail = detail;
+        statusItem.Status = result.Status;
+        statusItem.Detail = result.Detail;
     }
 
     private async Task InsertOldRepresentation(UserNotification notification)

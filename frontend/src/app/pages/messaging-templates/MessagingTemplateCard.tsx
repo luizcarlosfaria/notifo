@@ -5,18 +5,13 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-import * as React from 'react';
-import { match, NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Badge, Card, CardBody, DropdownItem, DropdownMenu, DropdownToggle } from 'reactstrap';
 import { Confirm, FormatDate, Icon, OverlayDropdown, useEventCallback } from '@app/framework';
 import { ChannelTemplateDto } from '@app/service';
 import { texts } from '@app/texts';
-import { combineUrl } from '@sdk/shared';
 
 export interface MessagingTemplateCardProps {
-    // The match.
-    match: match;
-
     // The template.
     template: ChannelTemplateDto;
 
@@ -25,21 +20,19 @@ export interface MessagingTemplateCardProps {
 }
 
 export const MessagingTemplateCard = (props: MessagingTemplateCardProps) => {
-    const { onDelete, match, template } = props;
+    const { onDelete, template } = props;
 
     const doDelete = useEventCallback(() => {
         onDelete(template);
     });
 
-    const url = combineUrl(match.url, template.id);
-
     return (
-        <NavLink className='card-link' to={url}>
+        <NavLink className='card-link' to={template.id}>
             <Card className='messaging-template'>
                 <CardBody>
                     {template.name ? (
-                        <h4 className='truncate'>{template.name}</h4> 
-                    ) : ( 
+                        <h4 className='truncate'>{template.name}</h4>
+                    ) : (
                         <h4 className='truncate text-muted'>{texts.common.noName}</h4>
                     )}
 

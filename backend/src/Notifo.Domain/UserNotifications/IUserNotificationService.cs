@@ -18,4 +18,6 @@ public interface IUserNotificationService
     Task TrackSeenAsync(params TrackingToken[] tokens);
 
     Task TrackConfirmedAsync(params TrackingToken[] token);
+
+    Task<bool> CancelAsync(CancelRequest request);
 }

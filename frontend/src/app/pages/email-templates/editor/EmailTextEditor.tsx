@@ -12,46 +12,41 @@ import { useEventCallback } from '@app/framework';
 import { usePreview } from './helpers';
 
 export interface EmailTextEditorProps {
-    // The initial value.
-    initialValue?: string | null;
+    // The value.
+    value?: string | null;
 
     // The app name.
     appId: string;
 
-    // The kind ot the template.
-    kind?: string | undefined;
-
     // When the text has changed.
-    onChange?: (value: string) => void;
+    onChange: (value: string) => void;
 
     // Called when the focus has been lost.
-    onBlur?: () => void;
+    onBlur: () => void;
 }
 
 export const EmailTextEditor = (props: EmailTextEditorProps) => {
-    const { appId, kind, onBlur, onChange, initialValue } = props;
+    const {
+        appId,
+        onBlur,
+        onChange,
+        value,
+    } = props;
 
-    const [emailPreview, markup, setMarkup] = usePreview(appId, 'Text', kind);
-
-    React.useEffect(() => {
-        onChange && emailPreview.emailMarkup && onChange(emailPreview.emailMarkup);
-    }, [emailPreview.emailMarkup, onChange]);
-
-    React.useEffect(() => {
-        setMarkup(initialValue || '');
-    });
+    const emailMarkup = value || '';
+    const emailPreview = usePreview(appId, emailMarkup, 'Text');
 
     const doChange = useEventCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        setMarkup(event.target.value);
+        onChange(event.target.value);
     });
 
-    const error = emailPreview.rendering.errors?.find(x => !x.line || x.line < 0);
+    const error = emailPreview.rendering.errors?.find(x => !x.lineNumber || x.lineNumber < 0);
 
     return (
         <div className='email-editor white'>
             <Split direction='horizontal'>
                 <div className='left'>
-                    <Input type='textarea' value={markup} onChange={doChange} onBlur={onBlur} spellCheck={false} />
+                    <Input type='textarea' value={value || ''} onChange={doChange} onBlur={onBlur} spellCheck={false} />
                 </div>
 
                 <div className='right'>

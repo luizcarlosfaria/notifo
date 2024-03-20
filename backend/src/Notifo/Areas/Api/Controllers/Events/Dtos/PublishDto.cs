@@ -7,12 +7,14 @@
 
 using System.ComponentModel.DataAnnotations;
 using NodaTime;
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Domain;
 using Notifo.Domain.Events;
 using Notifo.Infrastructure.Reflection;
 
 namespace Notifo.Areas.Api.Controllers.Events.Dtos;
 
+[OpenApiRequest]
 public sealed class PublishDto
 {
     /// <summary>
@@ -20,6 +22,11 @@ public sealed class PublishDto
     /// </summary>
     [Required]
     public string Topic { get; set; }
+
+    /// <summary>
+    /// A custom ID.
+    /// </summary>
+    public string? Id { get; set; }
 
     /// <summary>
     /// A custom id to identity the creator.
@@ -35,6 +42,11 @@ public sealed class PublishDto
     /// The correlation ID, that can be used to query notifications.
     /// </summary>
     public string? CorrelationId { get; set; }
+
+    /// <summary>
+    /// The grouping key to combine notifications.
+    /// </summary>
+    public string? GroupKey { get; set; }
 
     /// <summary>
     /// The template variants with propability.
@@ -95,9 +107,9 @@ public sealed class PublishDto
             result.Formatting = Preformatted.ToDomainObject();
         }
 
-        if (Settings?.Any() == true)
+        if (Settings?.Count > 0)
         {
-            result.Settings = new ChannelSettings();
+            result.Settings = [];
 
             foreach (var (key, value) in Settings)
             {

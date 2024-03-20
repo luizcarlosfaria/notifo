@@ -8,7 +8,6 @@
 using System.Globalization;
 using Mailjet.Client;
 using Mailjet.Client.TransactionalEmails;
-using Notifo.Domain.Channels.Email;
 using Notifo.Domain.Integrations.Resources;
 using Notifo.Infrastructure;
 

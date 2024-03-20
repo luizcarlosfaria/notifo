@@ -30,7 +30,7 @@ public class UserEventPublisherTests
     private readonly ITemplateStore templateStore = A.Fake<ITemplateStore>();
     private readonly IUserStore userStore = A.Fake<IUserStore>();
     private readonly Randomizer randomizer = A.Fake<Randomizer>();
-    private readonly List<UserEventMessage> publishedUserEvents = new List<UserEventMessage>();
+    private readonly List<UserEventMessage> publishedUserEvents = [];
     private readonly UserEventPublisher sut;
 
     public UserEventPublisherTests()
@@ -57,7 +57,7 @@ public class UserEventPublisherTests
         A.CallTo(() => subscriptionStore.QueryAsync(@event.AppId, A<TopicId>._, @event.CreatorId, ct))
             .MustNotHaveHappened();
 
-        A.CallTo(() => logStore.LogAsync(A<string>._, A<string>._))
+        A.CallTo(() => logStore.LogAsync(A<string>._, A<LogMessage>._, false))
             .MustNotHaveHappened();
     }
 
@@ -73,7 +73,7 @@ public class UserEventPublisherTests
         A.CallTo(() => subscriptionStore.QueryAsync(@event.AppId, A<TopicId>._, @event.CreatorId, ct))
             .MustNotHaveHappened();
 
-        A.CallTo(() => logStore.LogAsync(@event.AppId, A<string>._))
+        A.CallTo(() => logStore.LogAsync(@event.AppId, A<LogMessage>._, false))
             .MustHaveHappened();
     }
 
@@ -89,7 +89,7 @@ public class UserEventPublisherTests
         A.CallTo(() => subscriptionStore.QueryAsync(@event.AppId, A<TopicId>._, @event.CreatorId, ct))
             .MustNotHaveHappened();
 
-        A.CallTo(() => logStore.LogAsync(@event.AppId, A<string>._))
+        A.CallTo(() => logStore.LogAsync(@event.AppId, A<LogMessage>._, false))
             .MustHaveHappened();
     }
 
@@ -105,7 +105,7 @@ public class UserEventPublisherTests
         A.CallTo(() => subscriptionStore.QueryAsync(@event.AppId, A<TopicId>._, @event.CreatorId, ct))
             .MustNotHaveHappened();
 
-        A.CallTo(() => logStore.LogAsync(@event.AppId, A<string>._))
+        A.CallTo(() => logStore.LogAsync(@event.AppId, A<LogMessage>._, false))
             .MustHaveHappened();
     }
 
@@ -121,7 +121,7 @@ public class UserEventPublisherTests
         A.CallTo(() => eventStore.InsertAsync(@event, ct))
             .MustNotHaveHappened();
 
-        A.CallTo(() => logStore.LogAsync(@event.AppId, A<string>._))
+        A.CallTo(() => logStore.LogAsync(@event.AppId, A<LogMessage>._, false))
             .MustHaveHappened();
     }
 
@@ -130,7 +130,7 @@ public class UserEventPublisherTests
     {
         var @event = CreateMinimumEvent();
 
-        @event.Properties = new NotificationProperties();
+        @event.Properties = [];
 
         var subscriptions = new[]
         {
@@ -182,7 +182,7 @@ public class UserEventPublisherTests
         A.CallTo(() => eventStore.InsertAsync(@event, ct))
             .MustHaveHappenedOnceExactly();
 
-        A.CallTo(() => logStore.LogAsync(A<string>._, A<string>._))
+        A.CallTo(() => logStore.LogAsync(A<string>._, A<LogMessage>._, false))
             .MustNotHaveHappened();
     }
 
@@ -198,7 +198,7 @@ public class UserEventPublisherTests
             new Subscription
             {
                 TopicPrefix = "updates/sport",
-                TopicSettings = new ChannelSettings(),
+                TopicSettings = [],
                 UserId = "123"
             }
         };
@@ -210,7 +210,7 @@ public class UserEventPublisherTests
 
         Assert.Null(publishedUserEvents[0].Properties);
 
-        A.CallTo(() => logStore.LogAsync(A<string>._, A<string>._))
+        A.CallTo(() => logStore.LogAsync(A<string>._, A<LogMessage>._, false))
             .MustNotHaveHappened();
     }
 
@@ -237,7 +237,7 @@ public class UserEventPublisherTests
 
         Assert.NotNull(publishedUserEvents[0].Settings);
 
-        A.CallTo(() => logStore.LogAsync(A<string>._, A<string>._))
+        A.CallTo(() => logStore.LogAsync(A<string>._, A<LogMessage>._, false))
             .MustNotHaveHappened();
     }
 
@@ -262,7 +262,7 @@ public class UserEventPublisherTests
             }, @event)
         });
 
-        A.CallTo(() => logStore.LogAsync(A<string>._, A<string>._))
+        A.CallTo(() => logStore.LogAsync(A<string>._, A<LogMessage>._, false))
             .MustNotHaveHappened();
     }
 
@@ -305,7 +305,7 @@ public class UserEventPublisherTests
         A.CallTo(() => subscriptionStore.QueryAsync(A<string>._, A<TopicId>._, A<string>._, ct))
             .MustNotHaveHappened();
 
-        A.CallTo(() => logStore.LogAsync(A<string>._, A<string>._))
+        A.CallTo(() => logStore.LogAsync(A<string>._, A<LogMessage>._, false))
             .MustNotHaveHappened();
     }
 
@@ -320,7 +320,7 @@ public class UserEventPublisherTests
             {
                 AppId = @event.AppId,
                 TopicPrefix = "updates/sport",
-                TopicSettings = new ChannelSettings(),
+                TopicSettings = [],
                 UserId = "123"
             }
         };
@@ -335,7 +335,7 @@ public class UserEventPublisherTests
 
         Assert.Empty(publishedUserEvents);
 
-        A.CallTo(() => logStore.LogAsync(@event.AppId, A<string>._))
+        A.CallTo(() => logStore.LogAsync(@event.AppId, A<LogMessage>._, false))
             .MustHaveHappened();
     }
 
@@ -360,7 +360,7 @@ public class UserEventPublisherTests
             {
                 AppId = @event.AppId,
                 TopicPrefix = "updates/sport",
-                TopicSettings = new ChannelSettings(),
+                TopicSettings = [],
                 UserId = "123"
             },
             new Subscription
@@ -401,7 +401,7 @@ public class UserEventPublisherTests
         A.CallTo(() => templateStore.GetAsync(@event.AppId, @event.TemplateCode, ct))
             .MustHaveHappenedOnceExactly();
 
-        A.CallTo(() => logStore.LogAsync(A<string>._, A<string>._))
+        A.CallTo(() => logStore.LogAsync(A<string>._, A<LogMessage>._, false))
             .MustNotHaveHappened();
     }
 
@@ -424,7 +424,7 @@ public class UserEventPublisherTests
             {
                 AppId = @event.AppId,
                 TopicPrefix = "updates/sport",
-                TopicSettings = new ChannelSettings(),
+                TopicSettings = [],
                 UserId = "123"
             }
         };
@@ -436,7 +436,7 @@ public class UserEventPublisherTests
 
         Assert.Empty(publishedUserEvents);
 
-        A.CallTo(() => logStore.LogAsync(@event.AppId, A<string>._))
+        A.CallTo(() => logStore.LogAsync(@event.AppId, A<LogMessage>._, false))
             .MustHaveHappened();
     }
 
@@ -458,7 +458,7 @@ public class UserEventPublisherTests
         A.CallTo(() => templateStore.GetAsync(@event.AppId, @event.TemplateCode, ct))
             .MustNotHaveHappened();
 
-        A.CallTo(() => logStore.LogAsync(@event.AppId, A<string>._))
+        A.CallTo(() => logStore.LogAsync(@event.AppId, A<LogMessage>._, false))
             .MustHaveHappened();
     }
 
@@ -507,7 +507,7 @@ public class UserEventPublisherTests
         userEventMessage.EventId = @event.Id;
         userEventMessage.Formatting ??= @event.Formatting!;
         userEventMessage.Properties ??= @event.Properties;
-        userEventMessage.Settings ??= new ChannelSettings();
+        userEventMessage.Settings ??= [];
         userEventMessage.Silent = @event.Silent;
         userEventMessage.Topic ??= @event.Topic;
 

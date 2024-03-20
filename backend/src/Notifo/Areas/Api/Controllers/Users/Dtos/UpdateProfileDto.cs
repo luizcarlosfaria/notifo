@@ -5,12 +5,13 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using Notifo.Domain;
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Domain.Users;
 using Notifo.Infrastructure.Reflection;
 
 namespace Notifo.Areas.Api.Controllers.Users.Dtos;
 
+[OpenApiRequest]
 public sealed class UpdateProfileDto
 {
     /// <summary>
@@ -49,7 +50,7 @@ public sealed class UpdateProfileDto
 
         if (Settings != null)
         {
-            result.Settings = new ChannelSettings();
+            result.Settings = [];
 
             foreach (var (key, value) in Settings)
             {

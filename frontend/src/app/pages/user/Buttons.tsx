@@ -6,7 +6,6 @@
  */
 
 import classNames from 'classnames';
-import * as React from 'react';
 import { useDispatch } from 'react-redux';
 import { Button, Popover, PopoverBody, Table } from 'reactstrap';
 import { ApiValue, ClickOutside, FormatDate, Icon, useBoolean, useEventCallback } from '@app/framework';
@@ -63,7 +62,7 @@ export const ButtonEmail = ({ user }: { user: UserDto }) => {
 };
 
 export const ButtonWebPush = ({ appId, user }: { appId: string; user: UserDto }) => {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const [isOpen, setIsOpen] = useBoolean();
 
     const doDelete = useEventCallback((endpoint: string) => {
@@ -83,7 +82,7 @@ export const ButtonWebPush = ({ appId, user }: { appId: string; user: UserDto })
             </Button>
 
             <Popover isOpen={isOpen && hasValue} target='buttonWebPush' placement='auto' toggle={setIsOpen.toggle} popperClassName='popper-lg'>
-                {({ scheduleUpdate }) => 
+                {({ scheduleUpdate }) =>
                     <ClickOutside onClickOutside={setIsOpen.off} isActive={true}>
                         <PopoverBody>
                             <h5>{texts.common.webPush}</h5>
@@ -107,7 +106,7 @@ export const ButtonWebPush = ({ appId, user }: { appId: string; user: UserDto })
                                             <td>
                                                 <ApiValue size='sm' value={subscription.endpoint} />
                                             </td>
-                                            <td>            
+                                            <td>
                                                 <Button size='sm' color='danger' onClick={() => { doDelete(subscription.endpoint); scheduleUpdate(); }}>
                                                     <Icon type='delete' />
                                                 </Button>
@@ -120,13 +119,13 @@ export const ButtonWebPush = ({ appId, user }: { appId: string; user: UserDto })
                     </ClickOutside>
                 }
             </Popover>
-                               
+
         </>
     );
 };
 
 export const ButtonMobilePush = ({ appId, user }: { appId: string; user: UserDto }) => {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const [isOpen, setIsOpen] = useBoolean();
 
     const doDelete = useEventCallback((token: string) => {
@@ -146,7 +145,7 @@ export const ButtonMobilePush = ({ appId, user }: { appId: string; user: UserDto
             </Button>
 
             <Popover isOpen={isOpen && hasValue} target='buttonMobilePush' placement='auto' toggle={setIsOpen.toggle} popperClassName='popper-lg'>
-                {({ scheduleUpdate }) => 
+                {({ scheduleUpdate }) =>
                     <ClickOutside onClickOutside={setIsOpen.off} isActive={true}>
                         <PopoverBody>
                             <h5>{texts.common.mobilePush}</h5>
@@ -182,7 +181,7 @@ export const ButtonMobilePush = ({ appId, user }: { appId: string; user: UserDto
                                                     <>{texts.common.notYet}</>
                                                 )}
                                             </td>
-                                            <td>            
+                                            <td>
                                                 <Button size='sm' color='danger' onClick={() => { doDelete(token.token); scheduleUpdate(); }}>
                                                     <Icon type='delete' />
                                                 </Button>

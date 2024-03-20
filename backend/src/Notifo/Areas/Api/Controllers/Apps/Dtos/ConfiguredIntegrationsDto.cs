@@ -5,7 +5,6 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.ComponentModel.DataAnnotations;
 using Notifo.Domain.Apps;
 using Notifo.Domain.Integrations;
 
@@ -16,20 +15,18 @@ public sealed class ConfiguredIntegrationsDto
     /// <summary>
     /// The configured integrations.
     /// </summary>
-    [Required]
     public Dictionary<string, ConfiguredIntegrationDto> Configured { get; set; }
 
     /// <summary>
     /// The supported integrations.
     /// </summary>
-    [Required]
     public Dictionary<string, IntegrationDefinitionDto> Supported { get; set; }
 
     public static ConfiguredIntegrationsDto FromDomainObject(App source, IIntegrationManager integrationManager)
     {
         var result = new ConfiguredIntegrationsDto
         {
-            Configured = new Dictionary<string, ConfiguredIntegrationDto>()
+            Configured = []
         };
 
         if (source.Integrations != null)
@@ -40,7 +37,7 @@ public sealed class ConfiguredIntegrationsDto
             }
         }
 
-        result.Supported = new Dictionary<string, IntegrationDefinitionDto>();
+        result.Supported = [];
 
         foreach (var definition in integrationManager.Definitions)
         {

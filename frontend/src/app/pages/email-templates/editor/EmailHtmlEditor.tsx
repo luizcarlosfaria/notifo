@@ -7,42 +7,41 @@
 
 // tslint:disable: quotemark
 
-import * as React from 'react';
 import Split from 'react-split';
 import { Alert } from 'reactstrap';
 import { IFrame } from '@app/framework';
+import { MjmlSchema } from '@app/service';
 import { EmailHtmlTextEditor } from './EmailHtmlTextEditor';
 import { usePreview } from './helpers';
 
 export interface EmailHtmlEditorProps {
     // The value.
-    initialValue: string;
+    value: string;
 
     // The app name.
     appId: string;
 
-    // The kind ot the template.
-    kind?: string | undefined;
+    // The schema.
+    schema?: MjmlSchema;
 
     // When the html has changed.
-    onChange?: (value: string) => void;
+    onChange: (value: string) => void;
 
     // Called when the focus has been lost.
-    onBlur?: () => void;
+    onBlur: () => void;
 }
 
 export const EmailHtmlEditor = (props: EmailHtmlEditorProps) => {
-    const { appId, kind, onChange, initialValue } = props;
+    const {
+        appId,
+        onBlur,
+        onChange,
+        schema,
+        value,
+    } = props;
 
-    const [emailPreview, markup, setMarkup] = usePreview(appId, 'Html', kind);
-
-    React.useEffect(() => {
-        onChange && emailPreview.emailMarkup && onChange(emailPreview.emailMarkup);
-    }, [emailPreview, onChange]);
-
-    React.useEffect(() => {
-        setMarkup(initialValue);
-    }, [setMarkup, initialValue]);
+    const emailMarkup = value || '';
+    const emailPreview = usePreview(appId, emailMarkup, 'Html');
 
     const error = emailPreview.rendering.errors?.[0];
 
@@ -50,7 +49,13 @@ export const EmailHtmlEditor = (props: EmailHtmlEditorProps) => {
         <div className='email-editor'>
             <Split direction='horizontal'>
                 <div className='left'>
-                    <EmailHtmlTextEditor value={markup} errors={emailPreview.rendering?.errors} onChange={setMarkup} />
+                    <EmailHtmlTextEditor
+                        value={emailMarkup}
+                        errors={emailPreview.rendering?.errors}
+                        onBlur={onBlur}
+                        onChange={onChange}
+                        schema={schema}
+                    />
                 </div>
 
                 <div className='right'>

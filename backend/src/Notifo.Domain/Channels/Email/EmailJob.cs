@@ -12,11 +12,7 @@ namespace Notifo.Domain.Channels.Email;
 
 public sealed class EmailJob : ChannelJob
 {
-    public BaseUserNotification Notification { get; init; }
-
     public string EmailAddress { get; init; }
-
-    public string? EmailTemplate { get; init; }
 
     public string? FromEmail { get; init; }
 
@@ -24,13 +20,13 @@ public sealed class EmailJob : ChannelJob
 
     public string ScheduleKey
     {
-        get => string.Join("_",
+        get => string.Join('_',
             Notification.AppId,
             Notification.UserId,
             Notification.UserLanguage,
             Notification.Test,
             EmailAddress,
-            EmailTemplate,
+            Template,
             FromEmail,
             FromName);
     }
@@ -39,13 +35,12 @@ public sealed class EmailJob : ChannelJob
     {
     }
 
-    public EmailJob(BaseUserNotification notification, ChannelSetting setting, Guid configurationId, string emailAddress)
-        : base(notification, setting, configurationId, false, Providers.Email)
+    public EmailJob(UserNotification notification, ChannelContext context, string emailAddress)
+        : base(notification, context)
     {
         EmailAddress = emailAddress;
-        EmailTemplate = setting.Template;
-        FromEmail = setting.Properties?.GetOrDefault(nameof(FromEmail));
-        FromName = setting.Properties?.GetOrDefault(nameof(FromName));
-        Notification = notification;
+        Template = context.Setting.Template;
+        FromEmail = context.Setting.Properties?.GetOrDefault(nameof(FromEmail));
+        FromName = context.Setting.Properties?.GetOrDefault(nameof(FromName));
     }
 }

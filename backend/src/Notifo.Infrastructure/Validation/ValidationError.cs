@@ -23,12 +23,12 @@ public sealed class ValidationError
         get => propertyNames;
     }
 
-    public ValidationError(string message, params string[] propertyNames)
+    public ValidationError(string message, params string[]? propertyNames)
     {
         Guard.NotNullOrEmpty(message);
 
         this.message = message;
 
-        this.propertyNames = propertyNames ?? Array.Empty<string>();
+        this.propertyNames = propertyNames ?? [];
     }
 }

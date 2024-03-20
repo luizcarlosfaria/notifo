@@ -65,4 +65,18 @@ public static class ReflectionExtensions
     {
         return type.GetInterfaces().Contains(typeof(T));
     }
+
+    public static string GetManifestResourceString(this Assembly assembly, string resourceName)
+    {
+        var stream = assembly.GetManifestResourceStream(resourceName)
+            ?? throw new ArgumentException("Resource not found.", nameof(resourceName));
+
+        using (stream)
+        {
+            using (var reader = new StreamReader(stream))
+            {
+                return reader.ReadToEnd();
+            }
+        }
+    }
 }

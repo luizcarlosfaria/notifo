@@ -5,12 +5,11 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-/** @jsx h */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/** @jsximportsource preact */
+
 import { formatDistanceToNow, parseISO } from 'date-fns';
-import { h } from 'preact';
 import { useCallback, useEffect, useMemo, useState } from 'preact/hooks';
-import { NotificationsOptions, NotifoNotificationDto, SDKConfig, SUPPORTED_LOCALES, withPreset } from '@sdk/shared';
+import { getHostName, NotificationsOptions, NotifoNotificationDto, SDKConfig, SUPPORTED_LOCALES, withPreset } from '@sdk/shared';
 import { Icon } from './Icon';
 import { Image } from './Image';
 import { Loader } from './Loader';
@@ -62,6 +61,18 @@ export const NotificationItem = (props: NotificationItemProps) => {
 
     const inView = useInView(ref, modal);
 
+    const target = useMemo(() => {
+        if (config.linkTarget) {
+            return config.linkTarget;
+        }
+
+        if (!notification.linkUrl || getHostName(notification.linkUrl) === window.location.host) {
+            return '_self';
+        }
+
+        return '_blank';
+    }, [config.linkTarget, notification.linkUrl]);
+
     const doSee = useCallback(async () => {
         if (!onSeen) {
             return;
@@ -92,7 +103,11 @@ export const NotificationItem = (props: NotificationItemProps) => {
         } catch {
             setMarkConfirm('Failed');
         }
-    }, [notification, onConfirm]);
+
+        if (notification.confirmLink) {
+            window.open(notification.confirmLink, target);
+        }
+    }, [notification, onConfirm, target]);
 
     const doDelete = useCallback(async () => {
         if (!onDelete) {
@@ -127,29 +142,10 @@ export const NotificationItem = (props: NotificationItemProps) => {
             return null;
         }
 
-        const locale = SUPPORTED_LOCALES[config.locale];
+        const locale = (SUPPORTED_LOCALES as any)[config.locale];
 
         return formatDistanceToNow(parseISO(notification.created), { locale });
     }, [config.locale, notification.created]);
-
-    const target = useMemo(() => {
-        if (!notification.linkUrl) {
-            return '_self';
-        }
-
-        try {
-            const linkUrl = new URL(notification.linkUrl);
-
-            if (linkUrl.host === window.location.host) {
-                return '_self';
-            } else {
-                return '_blank';
-            }
-        } catch {
-            // URL is very likely relative.
-            return '_self';
-        }
-    }, [notification.linkUrl]);
 
     return (
         <div class='notifo-notification' ref={setRef} onClick={doSee}>

@@ -6,11 +6,13 @@
 // ==========================================================================
 
 using System.ComponentModel.DataAnnotations;
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Identity;
 using Notifo.Infrastructure.Reflection;
 
 namespace Notifo.Areas.Api.Controllers.SystemUsers.Dtos;
 
+[OpenApiRequest]
 public class UpdateSystemUserDto
 {
     /// <summary>
@@ -28,8 +30,7 @@ public class UpdateSystemUserDto
     /// <summary>
     /// Additional role for the user.
     /// </summary>
-    [Required]
-    public HashSet<string> Roles { get; set; }
+    public HashSet<string>? Roles { get; set; }
 
     public UserValues ToValues()
     {

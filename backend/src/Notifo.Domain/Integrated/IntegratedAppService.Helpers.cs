@@ -6,8 +6,8 @@
 // ==========================================================================
 
 using Notifo.Domain.Apps;
-using Notifo.Domain.Channels;
 using Notifo.Domain.Identity;
+using Notifo.Domain.Integrations;
 using Notifo.Domain.Subscriptions;
 using Notifo.Domain.Users;
 using Squidex.Hosting;
@@ -169,7 +169,7 @@ public sealed partial class IntegratedAppService : IInitializable
     private Task SendAsync(CommandBase request, string? userId,
         CancellationToken ct = default)
     {
-        request.WithTracking(IntegratedAppId, userId ?? IntegratedAppId);
+        request.With(IntegratedAppId, userId ?? IntegratedAppId);
 
         return mediator.PublishAsync(request, ct);
     }

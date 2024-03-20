@@ -16,10 +16,22 @@ export const Integrated = (props: IntegratedProps) => {
     const { token } = props;
 
     React.useEffect(() => {
-        const notifo = window['notifo'] || (window['notifo'] = []);
+        if (import.meta.env.PROD) {
+            const script = document.createElement('script');
+            script.src = '/notifo-sdk.js';
+            script.async = true;
+    
+            document.body.appendChild(script);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        const notifo = (window as any)['notifo'] || ((window as any)['notifo'] = []);
 
         notifo.push(['init', {
             userToken: token,
+            userId: null,
+            apiUrl: '/',
         }]);
 
         notifo.push(['subscribe']);
@@ -30,7 +42,7 @@ export const Integrated = (props: IntegratedProps) => {
             // The profile is manage dby the normal settings
             hideProfile: true,
         }]);
-    }, [ token]);
+    }, [token]);
 
     return (
         <div id='notifo-button'></div>

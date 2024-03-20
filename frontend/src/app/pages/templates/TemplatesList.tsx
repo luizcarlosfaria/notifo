@@ -22,7 +22,7 @@ export interface TemplateListProps {
 export const TemplatesList = (props: TemplateListProps) => {
     const { onOpen } = props;
 
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const selectedTemplateCode = useTemplates(x => x.currentTemplateCode);
@@ -66,7 +66,7 @@ export const TemplatesList = (props: TemplateListProps) => {
                     {templates.isLoading ? (
                         <Loader visible={templates.isLoading} />
                     ) : (
-                        <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tip={texts.common.refresh}>
+                        <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.refresh}>
                             <Icon className='text-lg' type='refresh' />
                         </Button>
                     )}

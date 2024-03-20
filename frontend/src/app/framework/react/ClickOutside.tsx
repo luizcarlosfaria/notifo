@@ -6,16 +6,14 @@
  */
 
 import * as React from 'react';
+import { useEventCallback } from './hooks';
 
-export interface ClickOutsideProps extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+export interface ClickOutsideProps extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement>, React.PropsWithChildren {
     // When clicked outside.
     onClickOutside: (event: MouseEvent) => any;
 
     // Indicates whether the outside click handler is active.
     isActive: boolean;
-
-    // The children.
-    children: React.ReactNode;
 }
 
 export const ClickOutside = React.memo((props: ClickOutsideProps) => {
@@ -23,9 +21,9 @@ export const ClickOutside = React.memo((props: ClickOutsideProps) => {
 
     const container = React.useRef<HTMLDivElement>();
 
-    const initContainer = React.useCallback((div: HTMLDivElement) => {
+    const initContainer = useEventCallback((div: HTMLDivElement) => {
         container.current = div;
-    }, []);
+    });
 
     React.useEffect(() => {
         const onClick = (event: MouseEvent) => {

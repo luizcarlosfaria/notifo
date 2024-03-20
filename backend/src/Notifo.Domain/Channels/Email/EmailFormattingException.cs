@@ -5,7 +5,6 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.Runtime.Serialization;
 using System.Text;
 
 namespace Notifo.Domain.Channels.Email;
@@ -21,17 +20,6 @@ public class EmailFormattingException : Exception
         Errors = errors.ToList();
     }
 
-    protected EmailFormattingException(SerializationInfo info, StreamingContext context)
-        : base(info, context)
-    {
-        Errors = info.GetValue(nameof(Errors), typeof(List<EmailFormattingError>)) as List<EmailFormattingError> ?? new List<EmailFormattingError>();
-    }
-
-    public override void GetObjectData(SerializationInfo info, StreamingContext context)
-    {
-        info.AddValue(nameof(Errors), Errors.ToList());
-    }
-
     private static string BuildErrorMessage(IEnumerable<EmailFormattingError> errors)
     {
         var sb = new StringBuilder();
@@ -41,13 +29,15 @@ public class EmailFormattingException : Exception
         foreach (var error in errors)
         {
             sb.Append(" * ");
-            sb.Append("Line: ");
-            sb.Append(error.Line);
+            sb.Append("Position: ");
+            sb.Append(error.Error.LineNumber);
+            sb.Append(", ");
+            sb.Append(error.Error.LinePosition);
             sb.Append(", ");
             sb.Append("Template: ");
             sb.Append(error.Template);
             sb.Append(", ");
-            sb.Append(error.Message);
+            sb.Append(error.Error.Message);
             sb.AppendLine();
         }
 

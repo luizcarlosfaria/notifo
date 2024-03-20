@@ -5,8 +5,6 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using Notifo.Infrastructure.TestHelpers;
-
 namespace Notifo.Infrastructure.MongoDb;
 
 public class SoftEnumSerializerTests
@@ -28,9 +26,9 @@ public class SoftEnumSerializerTests
     [InlineData("B", MyEnum.B)]
     [InlineData("C", MyEnum.A)]
     [InlineData("", MyEnum.A)]
-    public void Should_deserialize_from_string(string source, MyEnum expected)
+    public void Should_deserialize_from_string(string? source, MyEnum expected)
     {
-        var serialized = source.SerializeAndDeserializeBson<string, MyEnum>();
+        var serialized = source.SerializeAndDeserializeBson<string?, MyEnum>();
 
         Assert.Equal(expected, serialized);
     }

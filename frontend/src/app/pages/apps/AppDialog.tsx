@@ -5,8 +5,9 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-import { Formik } from 'formik';
+import { yupResolver } from '@hookform/resolvers/yup';
 import * as React from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 import { useDispatch } from 'react-redux';
 import { Button, Form, Modal, ModalBody, ModalFooter, ModalHeader } from 'reactstrap';
 import * as Yup from 'yup';
@@ -29,7 +30,7 @@ export interface AppDialogProps {
 export const AppDialog = (props: AppDialogProps) => {
     const { onClose } = props;
 
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const creating = useApps(x => x.creating);
     const creatingError = useApps(x => x.creatingError);
     const [wasCreating, setWasCreating] = React.useState(false);
@@ -54,38 +55,36 @@ export const AppDialog = (props: AppDialogProps) => {
         dispatch(createApp({ params }));
     });
 
-    const initialValues: any = {};
+    const form = useForm<CreateAppParams>({ resolver: yupResolver<any>(FormSchema), mode: 'onChange' });
 
     return (
         <Modal isOpen={true} toggle={onClose}>
-            <Formik<CreateAppParams> initialValues={initialValues} enableReinitialize onSubmit={doSave} validationSchema={FormSchema}>
-                {({ handleSubmit }) => (
-                    <Form onSubmit={handleSubmit}>
-                        <ModalHeader toggle={onClose}>
-                            {texts.apps.createHeader}
-                        </ModalHeader>
+            <FormProvider {...form}>
+                <Form onSubmit={form.handleSubmit(doSave)}>
+                    <ModalHeader toggle={onClose}>
+                        {texts.apps.createHeader}
+                    </ModalHeader>
 
-                        <ModalBody>
-                            <FormAlert text={texts.apps.createInfo} />
-                            
-                            <fieldset className='mt-3' disabled={creating}>
-                                <Forms.Text name='name' vertical
-                                    label={texts.common.name} />
-                            </fieldset>
+                    <ModalBody>
+                        <FormAlert text={texts.apps.createInfo} />
 
-                            <FormError error={creatingError} />
-                        </ModalBody>
-                        <ModalFooter className='justify-content-between'>
-                            <Button type='button' color='none' onClick={onClose}>
-                                {texts.common.cancel}
-                            </Button>
-                            <Button type='submit' color='primary'>
-                                <Loader light small visible={creating} /> {texts.common.create}
-                            </Button>
-                        </ModalFooter>
-                    </Form>
-                )}
-            </Formik>
+                        <fieldset className='mt-3' disabled={creating}>
+                            <Forms.Text name='name' vertical
+                                label={texts.common.name} />
+                        </fieldset>
+
+                        <FormError error={creatingError} />
+                    </ModalBody>
+                    <ModalFooter className='justify-content-between'>
+                        <Button type='button' color='none' onClick={onClose}>
+                            {texts.common.cancel}
+                        </Button>
+                        <Button type='submit' color='primary'>
+                            <Loader light small visible={creating} /> {texts.common.create}
+                        </Button>
+                    </ModalFooter>
+                </Form>
+            </FormProvider>
         </Modal>
     );
 };

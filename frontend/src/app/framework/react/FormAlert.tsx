@@ -5,8 +5,7 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-import * as React from 'react';
-import * as ReactMarkdown from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
 import { Alert } from 'reactstrap';
 import { Icon } from './Icon';
 

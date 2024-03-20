@@ -18,9 +18,16 @@ public sealed class DelegatingScheduler<T> : IScheduler<T>
         this.scheduling = scheduling;
     }
 
-    public void Complete(string key)
+    public Task<bool> CompleteAsync(string key,
+        CancellationToken ct = default)
     {
-        scheduling.Complete(key);
+        return scheduling.CompleteAsync(key, ct);
+    }
+
+    public Task<bool> CompleteAsync(string key, string groupKey,
+        CancellationToken ct = default)
+    {
+        return scheduling.CompleteAsync(key, groupKey, ct);
     }
 
     public Task ScheduleAsync(string key, T job, Instant dueTime, bool canInline,
@@ -35,15 +42,15 @@ public sealed class DelegatingScheduler<T> : IScheduler<T>
         return scheduling.ScheduleAsync(key, job, dueTimeFromNow, canInline, ct);
     }
 
-    public Task ScheduleGroupedAsync(string key, T job, Instant dueTime, bool canInline,
+    public Task ScheduleGroupedAsync(string key, string groupKey, T job, Instant dueTime, bool canInline,
         CancellationToken ct = default)
     {
-        return scheduling.ScheduleGroupedAsync(key, job, dueTime, canInline, ct);
+        return scheduling.ScheduleGroupedAsync(key, groupKey, job, dueTime, canInline, ct);
     }
 
-    public Task ScheduleGroupedAsync(string key, T job, Duration dueTimeFromNow, bool canInline,
+    public Task ScheduleGroupedAsync(string key, string groupKey, T job, Duration dueTimeFromNow, bool canInline,
         CancellationToken ct = default)
     {
-        return scheduling.ScheduleGroupedAsync(key, job, dueTimeFromNow, canInline, ct);
+        return scheduling.ScheduleGroupedAsync(key, groupKey, job, dueTimeFromNow, canInline, ct);
     }
 }

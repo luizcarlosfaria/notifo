@@ -35,21 +35,13 @@ public sealed class TokenStoreInitializer : IInitializable
     {
         await SetupIndexAsync(ct);
 
-        await PruneAsync(ct);
-
-        timer = new CompletionTimer((int)TimeSpan.FromHours(6).TotalMilliseconds, async ct =>
-        {
-            await PruneAsync(ct);
-        });
+        timer = new CompletionTimer((int)TimeSpan.FromHours(6).TotalMilliseconds, PruneAsync);
     }
 
-    public async Task ReleaseAsync(
+    public Task ReleaseAsync(
         CancellationToken ct)
     {
-        if (timer != null)
-        {
-            await timer.StopAsync();
-        }
+        return timer?.StopAsync() ?? Task.CompletedTask;
     }
 
     private async Task PruneAsync(
@@ -70,11 +62,11 @@ public sealed class TokenStoreInitializer : IInitializable
         {
             var database = await scope.ServiceProvider.GetRequiredService<IOpenIddictMongoDbContext>().GetDatabaseAsync(ct);
 
-            var collection = database.GetCollection<OpenIddictMongoDbToken<string>>(options.TokensCollectionName);
+            var collection = database.GetCollection<OpenIddictMongoDbToken>(options.TokensCollectionName);
 
             await collection.Indexes.CreateOneAsync(
-                new CreateIndexModel<OpenIddictMongoDbToken<string>>(
-                    Builders<OpenIddictMongoDbToken<string>>.IndexKeys
+                new CreateIndexModel<OpenIddictMongoDbToken>(
+                    Builders<OpenIddictMongoDbToken>.IndexKeys
                         .Ascending(x => x.ReferenceId)),
                 cancellationToken: ct);
         }

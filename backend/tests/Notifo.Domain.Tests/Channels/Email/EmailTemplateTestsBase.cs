@@ -124,8 +124,8 @@ public abstract class EmailTemplateTestsBase
                 {
                     Body = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr",
                     Subject = "subject1",
-                    ImageSmall = "https://via.placeholder.com/100",
-                    ImageLarge = "https://via.placeholder.com/600"
+                    ImageSmall = "https://raw.githubusercontent.com/notifo-io/notifo/main/backend/src/Notifo/wwwroot/placeholder.png",
+                    ImageLarge = "https://raw.githubusercontent.com/notifo-io/notifo/main/backend/src/Notifo/wwwroot/placeholder-large.png"
                 }
             });
 
@@ -229,8 +229,8 @@ public abstract class EmailTemplateTestsBase
                 {
                     Body = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr",
                     Subject = "subject1",
-                    ImageSmall = "https://via.placeholder.com/100",
-                    ImageLarge = "https://via.placeholder.com/600",
+                    ImageSmall = "https://notifo.io/placeholder.png",
+                    ImageLarge = "https://notifo.io/placeholder-large.png",
                     ConfirmText = "Got It!",
                     ConfirmMode = ConfirmMode.Explicit
                 },
@@ -313,13 +313,25 @@ public abstract class EmailTemplateTestsBase
 
     private async Task<(string?, string?)> FormatAsync(List<EmailJob> jobs)
     {
-        var formatted = await emailFormatter.FormatAsync(emailTemplate, jobs, PreviewData.App, PreviewData.User);
+        var (message, _) = await emailFormatter.FormatAsync(emailTemplate, jobs, PreviewData.App, PreviewData.User);
 
-        return (formatted.Message?.BodyHtml, formatted.Message?.BodyText);
+        return (message?.BodyHtml, message?.BodyText);
     }
 
     private static List<EmailJob> ToJobs(params UserNotification[] notifications)
     {
-        return notifications.Select(x => new EmailJob(x, new ChannelSetting(), Guid.NewGuid(), PreviewData.User.EmailAddress!)).ToList();
+        var context = new ChannelContext
+        {
+            App = null!,
+            AppId = null!,
+            Configuration = [],
+            ConfigurationId = Guid.NewGuid(),
+            IsUpdate = false,
+            Setting = new ChannelSetting(),
+            User = null!,
+            UserId = null!,
+        };
+
+        return notifications.Select(x => new EmailJob(x, context, PreviewData.User.EmailAddress!)).ToList();
     }
 }

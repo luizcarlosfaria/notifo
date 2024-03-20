@@ -1,0 +1,374 @@
+﻿// ==========================================================================
+//  Notifo.io
+// ==========================================================================
+//  Copyright (c) Sebastian Stehle
+//  All rights reserved. Licensed under the MIT license.
+// ==========================================================================
+
+using System.Globalization;
+using Notifo.SDK;
+using TestSuite.Fixtures;
+
+#pragma warning disable SA1300 // Element should begin with upper-case letter
+#pragma warning disable SA1507 // Code should not contain multiple blank lines in a row
+#pragma warning disable xUnit1033 // Test classes decorated with 'Xunit.IClassFixture<TFixture>' or 'Xunit.ICollectionFixture<TFixture>' should add a constructor argument of type TFixture
+
+namespace TestSuite.ApiTests;
+public class MailTests : IClassFixture<ClientFixture>, IClassFixture<MailcatcherFixture>
+{
+    private readonly MailcatcherClient mailcatcher;
+
+    public ClientFixture _ { get; }
+
+    public MailTests(ClientFixture fixture, MailcatcherFixture mailcatcher)
+    {
+        _ = fixture;
+
+        this.mailcatcher = mailcatcher.Client;
+    }
+
+    [Fact]
+    public async Task Should_send_email()
+    {
+        var appName = Guid.NewGuid().ToString();
+
+        // STEP 0: Create app
+        var createRequest = new UpsertAppDto
+        {
+            Name = appName
+        };
+
+        var app_0 = await _.Client.Apps.PostAppAsync(createRequest);
+
+
+        // STEP 1: Create email template.
+        var emailTemplateRequest = new CreateChannelTemplateDto();
+
+        await _.Client.EmailTemplates.PostTemplateAsync(app_0.Id, emailTemplateRequest);
+
+
+        // STEP 2: Create integration
+        var emailIntegrationRequest = new CreateIntegrationDto
+        {
+            Type = "SMTP",
+            Properties = new Dictionary<string, string>
+            {
+                ["host"] = mailcatcher.SmtpHost,
+                ["fromEmail"] = "hello@notifo.io",
+                ["fromName"] = "Hello Notifo",
+                ["port"] = mailcatcher.SmtpPort.ToString(CultureInfo.InvariantCulture)
+            },
+            Enabled = true
+        };
+
+        await _.Client.Apps.PostIntegrationAsync(app_0.Id, emailIntegrationRequest);
+
+
+        // STEP 3: Create user
+        var userRequest = new UpsertUsersDto
+        {
+            Requests =
+            [
+                new UpsertUserDto
+                {
+                    EmailAddress = "hello@notifo.io"
+                },
+            ]
+        };
+
+        var users_0 = await _.Client.Users.PostUsersAsync(app_0.Id, userRequest);
+        var user_0 = users_0.First();
+
+
+        // STEP 4: Send email
+        var subjectId = Guid.NewGuid().ToString();
+
+        var publishRequest = new PublishManyDto
+        {
+            Requests =
+            [
+                new PublishDto
+                {
+                    Topic = $"users/{user_0.Id}",
+                    Preformatted = new NotificationFormattingDto
+                    {
+                        Subject = new LocalizedText
+                        {
+                            ["en"] = subjectId
+                        }
+                    },
+                    Settings = new Dictionary<string, ChannelSettingDto>
+                    {
+                        [Providers.Email] = new ChannelSettingDto
+                        {
+                            Send = ChannelSend.Send
+                        }
+                    }
+                },
+            ]
+        };
+
+        await _.Client.Events.PostEventsAsync(app_0.Id, publishRequest);
+
+
+        // Get email status
+        using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
+        {
+            while (!cts.IsCancellationRequested)
+            {
+                var messages = await mailcatcher.GetMessagesAsync(cts.Token);
+                var message = messages.FirstOrDefault(x => x.Subject.Contains(appName, StringComparison.OrdinalIgnoreCase));
+
+                if (message != null)
+                {
+                    var body = await mailcatcher.GetBodyAsync(message.Id, cts.Token);
+
+                    Assert.Contains(subjectId, body.Plain, StringComparison.OrdinalIgnoreCase);
+                    Assert.Contains(subjectId, body.Html, StringComparison.OrdinalIgnoreCase);
+                    return;
+                }
+
+                await Task.Delay(50, cts.Token);
+            }
+        }
+
+        Assert.Fail("Email not received.");
+    }
+
+    [Fact]
+    public async Task Should_not_send_email_when_template_missing()
+    {
+        var appName = Guid.NewGuid().ToString();
+
+        // STEP 0: Create app
+        var createRequest = new UpsertAppDto
+        {
+            Name = appName
+        };
+
+        var app_0 = await _.Client.Apps.PostAppAsync(createRequest);
+
+
+        // STEP 1: Create integration
+        var emailIntegrationRequest = new CreateIntegrationDto
+        {
+            Type = "SMTP",
+            Properties = new Dictionary<string, string>
+            {
+                ["host"] = mailcatcher.SmtpHost,
+                ["fromEmail"] = "hello@notifo.io",
+                ["fromName"] = "Hello Notifo",
+                ["port"] = mailcatcher.SmtpPort.ToString(CultureInfo.InvariantCulture)
+            },
+            Enabled = true
+        };
+
+        await _.Client.Apps.PostIntegrationAsync(app_0.Id, emailIntegrationRequest);
+
+
+        // STEP 2: Create user
+        var userRequest = new UpsertUsersDto
+        {
+            Requests =
+            [
+                new UpsertUserDto
+                {
+                    EmailAddress = "hello@notifo.io"
+                },
+            ]
+        };
+
+        var users_0 = await _.Client.Users.PostUsersAsync(app_0.Id, userRequest);
+        var user_0 = users_0.First();
+
+
+        // STEP 3: Send email
+        var subjectId = Guid.NewGuid().ToString();
+
+        var publishRequest = new PublishManyDto
+        {
+            Requests =
+            [
+                new PublishDto
+                {
+                    Topic = $"users/{user_0.Id}",
+                    Preformatted = new NotificationFormattingDto
+                    {
+                        Subject = new LocalizedText
+                        {
+                            ["en"] = subjectId
+                        }
+                    },
+                    Settings = new Dictionary<string, ChannelSettingDto>
+                    {
+                        [Providers.Email] = new ChannelSettingDto
+                        {
+                            Send = ChannelSend.Send
+                        }
+                    }
+                },
+            ]
+        };
+
+        await _.Client.Events.PostEventsAsync(app_0.Id, publishRequest);
+
+
+        // STEP 4: Wait for log entries.
+        var logs = await _.Client.Logs.PollAsync(app_0.Id, null);
+
+        Assert.Contains(logs, x => x.EventCode == 1100);
+    }
+
+    [Fact]
+    public async Task Should_not_send_email_when_user_has_no_email_address()
+    {
+        var appName = Guid.NewGuid().ToString();
+
+        // STEP 0: Create app
+        var createRequest = new UpsertAppDto
+        {
+            Name = appName
+        };
+
+        var app_0 = await _.Client.Apps.PostAppAsync(createRequest);
+
+
+        // STEP 1: Create integration
+        var emailIntegrationRequest = new CreateIntegrationDto
+        {
+            Type = "SMTP",
+            Properties = new Dictionary<string, string>
+            {
+                ["host"] = mailcatcher.SmtpHost,
+                ["fromEmail"] = "hello@notifo.io",
+                ["fromName"] = "Hello Notifo",
+                ["port"] = mailcatcher.SmtpPort.ToString(CultureInfo.InvariantCulture)
+            },
+            Enabled = true
+        };
+
+        await _.Client.Apps.PostIntegrationAsync(app_0.Id, emailIntegrationRequest);
+
+
+        // STEP 2: Create user
+        var userRequest = new UpsertUsersDto
+        {
+            Requests =
+            [
+                new UpsertUserDto
+                {
+                    EmailAddress = null,
+                },
+            ]
+        };
+
+        var users_0 = await _.Client.Users.PostUsersAsync(app_0.Id, userRequest);
+        var user_0 = users_0.First();
+
+
+        // STEP 3: Send email
+        var subjectId = Guid.NewGuid().ToString();
+
+        var publishRequest = new PublishManyDto
+        {
+            Requests =
+            [
+                new PublishDto
+                {
+                    Topic = $"users/{user_0.Id}",
+                    Preformatted = new NotificationFormattingDto
+                    {
+                        Subject = new LocalizedText
+                        {
+                            ["en"] = subjectId
+                        }
+                    },
+                    Settings = new Dictionary<string, ChannelSettingDto>
+                    {
+                        [Providers.Email] = new ChannelSettingDto
+                        {
+                            Send = ChannelSend.Send,
+
+                            // This channel is required and we expect a log entry for the failure.
+                            Required = ChannelRequired.Required
+                        }
+                    }
+                },
+            ]
+        };
+
+        await _.Client.Events.PostEventsAsync(app_0.Id, publishRequest);
+
+
+        // STEP 4: Wait for log entries.
+        var logs = await _.Client.Logs.PollAsync(app_0.Id, null);
+
+        Assert.Contains(logs, x => x.EventCode == 1207);
+
+
+        // STEP 5: Wait for user log entries.
+        var userLogs = await _.Client.Logs.PollAsync(app_0.Id, user_0.Id);
+
+        Assert.Contains(userLogs, x => x.EventCode == 1207);
+    }
+
+    [Fact]
+    public async Task Should_render_email_preview()
+    {
+        var appName = Guid.NewGuid().ToString();
+
+        // STEP 0: Create app
+        var createRequest = new UpsertAppDto
+        {
+            Name = appName
+        };
+
+        var app_0 = await _.Client.Apps.PostAppAsync(createRequest);
+
+
+        // STEP 1: Create email template.
+        var emailTemplateRequest = new CreateChannelTemplateDto();
+
+        var template_0 = await _.Client.EmailTemplates.PostTemplateAsync(app_0.Id, emailTemplateRequest);
+
+
+        // STEP 2: Render preview
+        var previewRequest = new EmailPreviewRequestDto
+        {
+            Template = template_0.Languages.First().Value.BodyHtml
+        };
+
+        var preview_0 = await _.Client.EmailTemplates.PostPreviewAsync(app_0.Id, previewRequest);
+
+        Assert.NotNull(preview_0.Result);
+        Assert.NotNull(preview_0.Errors);
+        Assert.Empty(preview_0.Errors);
+    }
+
+    [Fact]
+    public async Task Should_not_render_invalid_email_preview()
+    {
+        var appName = Guid.NewGuid().ToString();
+
+        // STEP 0: Create app
+        var createRequest = new UpsertAppDto
+        {
+            Name = appName
+        };
+
+        var app_0 = await _.Client.Apps.PostAppAsync(createRequest);
+
+
+        // STEP 1: Render preview
+        var previewRequest = new EmailPreviewRequestDto
+        {
+            Template = "invalid"
+        };
+
+        var preview_0 = await _.Client.EmailTemplates.PostPreviewAsync(app_0.Id, previewRequest);
+
+        Assert.Null(preview_0.Result);
+        Assert.NotNull(preview_0.Errors);
+        Assert.NotEmpty(preview_0.Errors);
+    }
+}

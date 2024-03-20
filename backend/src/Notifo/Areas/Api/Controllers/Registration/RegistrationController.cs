@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 using Notifo.Areas.Api.Controllers.Registration.Dto;
 using Notifo.Areas.Api.Controllers.Registration.Dtos;
 using Notifo.Domain;
-using Notifo.Domain.Channels;
 using Notifo.Domain.Channels.WebPush;
 using Notifo.Domain.Identity;
+using Notifo.Domain.Integrations;
 using Notifo.Domain.Subscriptions;
 using Notifo.Infrastructure;
 using Notifo.Pipeline;
@@ -33,7 +33,7 @@ public sealed class RegistrationController : BaseController
     public async Task<IActionResult> Register([FromBody] RegisterUserDto request)
     {
         string? userId = null;
-        string? userToken = null;
+        string? userKey = null;
 
         if (request.CreateUser)
         {
@@ -41,7 +41,7 @@ public sealed class RegistrationController : BaseController
 
             var user = await Mediator.SendAsync(userCommand, HttpContext.RequestAborted);
 
-            if (request.Topics?.Any() == true)
+            if (request.Topics?.Length > 0)
             {
                 var command = new Subscribe
                 {
@@ -70,7 +70,7 @@ public sealed class RegistrationController : BaseController
                 }
             }
 
-            userToken = user!.ApiKey;
+            userKey = user!.ApiKey;
             userId = user!.Id;
         }
 
@@ -78,7 +78,7 @@ public sealed class RegistrationController : BaseController
         {
             PublicKey = webPushService.PublicKey,
             UserId = userId,
-            UserToken = userToken
+            UserToken = userKey
         };
 
         return Ok(response);

@@ -5,7 +5,6 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.Reflection;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using Google.Cloud.Diagnostics.Common;
 using Notifo;
@@ -19,7 +18,7 @@ public static class TelemetryServiceExtensions
 {
     public static void AddMyTelemetry(this IServiceCollection services, IConfiguration config)
     {
-        services.AddOpenTelemetryTracing(builder =>
+        services.AddOpenTelemetry().WithTracing(builder =>
         {
             var serviceName = config.GetValue<string>("logging:name") ?? "Notifo";
             var serviceVersion = VersionProvider.Current;

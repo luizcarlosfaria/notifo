@@ -6,11 +6,13 @@
 // ==========================================================================
 
 using NodaTime;
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Domain.UserNotifications;
 using Notifo.Infrastructure.Reflection;
 
 namespace Notifo.Areas.Api.Controllers.Notifications.Dtos;
 
+[OpenApiRequest]
 public sealed class DeviceNotificationsQueryDto
 {
     /// <summary>
@@ -24,14 +26,29 @@ public sealed class DeviceNotificationsQueryDto
     public Instant After { get; set; }
 
     /// <summary>
-    /// True to also include unseen notifications.
+    /// The scope of the query.
     /// </summary>
-    public bool IncludeUnseen { get; set; }
+    public DeviceNotificationsQueryScope Scope { get; set; }
 
     /// <summary>
     /// The number of notifications to query.
     /// </summary>
     public int Take { get; set; }
+
+    /// <summary>
+    /// True to also include unseen notifications.
+    /// </summary>
+    [Obsolete("Use 'Scope' property.")]
+    public bool IncludeUnseen
+    {
+        set
+        {
+            if (value)
+            {
+                Scope = DeviceNotificationsQueryScope.All;
+            }
+        }
+    }
 
     public DeviceNotificationsQuery ToQuery()
     {

@@ -7,7 +7,7 @@
 
 using NodaTime;
 using Notifo.Domain.Apps;
-using Notifo.Domain.Channels;
+using Notifo.Domain.Integrations;
 using Notifo.Domain.Log;
 using Notifo.Domain.UserEvents;
 using Notifo.Domain.Users;
@@ -27,7 +27,7 @@ public sealed class UserNotificationFactoryTests
     private readonly App app;
     private readonly User user = new User("1", "1", default);
     private readonly Instant now = SystemClock.Instance.GetCurrentInstant();
-    private readonly IUserNotificationFactory sut;
+    private readonly UserNotificationFactory sut;
 
     public UserNotificationFactoryTests()
     {
@@ -61,7 +61,7 @@ public sealed class UserNotificationFactoryTests
 
         userEvent.AppId = null!;
 
-        Assert.Null(sut.Create(app, user, userEvent));
+        Assert.Null(sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>()));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class UserNotificationFactoryTests
 
         userEvent.UserId = null!;
 
-        Assert.Null(sut.Create(app, user, userEvent));
+        Assert.Null(sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>()));
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public sealed class UserNotificationFactoryTests
 
         userEvent.Topic = null!;
 
-        Assert.Null(sut.Create(app, user, userEvent));
+        Assert.Null(sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>()));
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class UserNotificationFactoryTests
 
         userEvent.EventId = null!;
 
-        Assert.Null(sut.Create(app, user, userEvent));
+        Assert.Null(sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>()));
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class UserNotificationFactoryTests
 
         userEvent.Formatting = null!;
 
-        Assert.Null(sut.Create(app, user, userEvent));
+        Assert.Null(sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>()));
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public sealed class UserNotificationFactoryTests
 
         userEvent.Formatting.Subject = null!;
 
-        Assert.Null(sut.Create(app, user, userEvent));
+        Assert.Null(sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>()));
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public sealed class UserNotificationFactoryTests
 
         userEvent.Formatting.Subject.Clear();
 
-        Assert.Null(sut.Create(app, user, userEvent));
+        Assert.Null(sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>()));
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class UserNotificationFactoryTests
     {
         var userEvent = CreateMinimumUserEvent();
 
-        var notification = sut.Create(app, user, userEvent)!;
+        var notification = sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>())!;
 
         Assert.Equal(userEvent.AppId, notification.AppId);
         Assert.Equal(userEvent.Created, notification.Created);
@@ -150,12 +150,12 @@ public sealed class UserNotificationFactoryTests
             PreferredLanguage = "de"
         };
 
-        var notification = sut.Create(app, germanUser, userEvent)!;
+        var notification = sut.Create(app, germanUser, userEvent, Enumerable.Empty<UserEventMessage>())!;
 
         Assert.Equal("deText", notification.Formatting.Subject);
         Assert.Equal("de", notification.UserLanguage);
 
-        A.CallTo(() => logStore.LogAsync(app.Id, A<string>._))
+        A.CallTo(() => logStore.LogAsync(app.Id, A<LogMessage>._, false))
             .MustNotHaveHappened();
     }
 
@@ -169,12 +169,12 @@ public sealed class UserNotificationFactoryTests
             PreferredLanguage = "it"
         };
 
-        var notification = sut.Create(app, danishUser, userEvent)!;
+        var notification = sut.Create(app, danishUser, userEvent, Enumerable.Empty<UserEventMessage>())!;
 
         Assert.Equal("enText", notification.Formatting.Subject);
         Assert.Equal("en", notification.UserLanguage);
 
-        A.CallTo(() => logStore.LogAsync(app.Id, A<string>._))
+        A.CallTo(() => logStore.LogAsync(app.Id, A<LogMessage>._, false))
             .MustHaveHappened();
     }
 
@@ -185,7 +185,7 @@ public sealed class UserNotificationFactoryTests
 
         userEvent.Formatting.ConfirmMode = ConfirmMode.Explicit;
 
-        var notification = sut.Create(app, user, userEvent)!;
+        var notification = sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>())!;
 
         Assert.Equal($"confirm/{notification.Id}/?lang=en", notification.ConfirmUrl);
         Assert.Equal($"Confirm", notification.Formatting.ConfirmText);
@@ -202,7 +202,7 @@ public sealed class UserNotificationFactoryTests
             ["en"] = "Confirmed"
         };
 
-        var notification = sut.Create(app, user, userEvent)!;
+        var notification = sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>())!;
 
         Assert.Equal($"confirm/{notification.Id}/?lang=en", notification.ConfirmUrl);
         Assert.Equal($"Confirmed", notification.Formatting.ConfirmText);
@@ -213,7 +213,7 @@ public sealed class UserNotificationFactoryTests
     {
         var userEvent = CreateMinimumUserEvent();
 
-        var notification = sut.Create(app, user, userEvent)!;
+        var notification = sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>())!;
 
         Assert.Null(notification.Formatting.ConfirmText);
     }
@@ -233,7 +233,7 @@ public sealed class UserNotificationFactoryTests
             ["en"] = "image/small"
         };
 
-        var notification = sut.Create(app, user, userEvent)!;
+        var notification = sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>())!;
 
         Assert.Equal("proxy/image/large", notification.Formatting.ImageLarge);
         Assert.Equal("proxy/image/small", notification.Formatting.ImageSmall);
@@ -264,7 +264,7 @@ public sealed class UserNotificationFactoryTests
             }
         };
 
-        var notification = sut.Create(app, user, userEvent)!;
+        var notification = sut.Create(app, user, userEvent, Enumerable.Empty<UserEventMessage>())!;
 
         notification.Channels.Should().BeEquivalentTo(
             new Dictionary<string, UserNotificationChannel>
@@ -275,7 +275,7 @@ public sealed class UserNotificationFactoryTests
                     {
                         Send = ChannelSend.NotSending
                     },
-                    Status = new Dictionary<Guid, ChannelSendInfo>()
+                    Status = []
                 },
 
                 [Providers.MobilePush] = new UserNotificationChannel
@@ -284,7 +284,7 @@ public sealed class UserNotificationFactoryTests
                     {
                         DelayInSeconds = 100
                     },
-                    Status = new Dictionary<Guid, ChannelSendInfo>()
+                    Status = []
                 }
             });
     }
@@ -293,6 +293,10 @@ public sealed class UserNotificationFactoryTests
     {
         var userEvent = new UserEventMessage
         {
+            AppId = "app",
+            Created = now,
+            EventActivity = default,
+            EventId = "eventId",
             Formatting = new NotificationFormatting<LocalizedText>
             {
                 Subject = new LocalizedText
@@ -300,14 +304,11 @@ public sealed class UserNotificationFactoryTests
                     ["en"] = "enText",
                     ["de"] = "deText"
                 }
-            }
+            },
+            Topic = "topic",
+            UserId = "user",
+            UserEventActivity = default,
         };
-
-        userEvent.AppId = "app";
-        userEvent.Created = now;
-        userEvent.EventId = "eventId";
-        userEvent.Topic = "topic";
-        userEvent.UserId = "user";
 
         return userEvent;
     }

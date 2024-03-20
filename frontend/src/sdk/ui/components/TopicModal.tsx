@@ -5,11 +5,11 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-/** @jsx h */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Fragment, h } from 'preact';
+/** @jsximportsource preact */
+
+import { Fragment } from 'preact';
 import { useCallback, useEffect } from 'preact/hooks';
-import {  SDKConfig, sendToBoolean, setSubscriptionChannel, SubscriptionDto } from '@sdk/shared';
+import { SDKConfig, sendToBoolean, setSubscriptionChannel, SubscriptionDto } from '@sdk/shared';
 import { Status, subscribe, useDispatch } from '@sdk/ui/model';
 import { Loader } from './Loader';
 import { Toggle } from './Toggle';
@@ -75,7 +75,7 @@ export const TopicModal = (props: TopicModalProps) => {
 
                 <label class='notifo-form-toggle-label'>{config.texts.notifyBeWebPush}</label>
             </div>
-            
+
             <hr />
 
             <div class='notifo-form-group'>

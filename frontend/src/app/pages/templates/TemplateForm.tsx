@@ -5,16 +5,16 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
+import { yupResolver } from '@hookform/resolvers/yup';
 import classNames from 'classnames';
-import { Formik } from 'formik';
 import * as React from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 import { useDispatch } from 'react-redux';
 import { Button, Card, CardBody, CardHeader, Col, Form, Label, Row } from 'reactstrap';
 import * as Yup from 'yup';
 import { FormError, Icon, Loader, Types, useEventCallback } from '@app/framework';
 import { TemplateDto } from '@app/service';
 import { Forms, NotificationsForm } from '@app/shared/components';
-import { CHANNELS } from '@app/shared/utils/model';
 import { upsertTemplate, useApp, useTemplates } from '@app/state';
 import { texts } from '@app/texts';
 import { NotificationPreview } from './NotificationPreview';
@@ -52,7 +52,7 @@ export const TemplateForm = (props: TemplateFormProps) => {
         template,
     } = props;
 
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const appLanguages = app.languages;
@@ -68,81 +68,76 @@ export const TemplateForm = (props: TemplateFormProps) => {
         setViewFullscreen(x => !x);
     });
 
-    const initialValues: any = React.useMemo(() => {
-        const result: Partial<TemplateDto> = Types.clone(template || {});
-
-        result.settings ||= {};
-
-        for (const channel of CHANNELS) {
-            result.settings[channel] ||= { send: 'Inherit', condition: 'Inherit' };
-        }
-
-        return result;
+    const defaultValues: any = React.useMemo(() => {
+        return Types.clone(template || {});
     }, [template]);
 
+    const form = useForm<TemplateDto>({ resolver: yupResolver<any>(FormSchema), defaultValues, mode: 'onChange' });
+
     return (
-        <Formik<TemplateDto> initialValues={initialValues} enableReinitialize onSubmit={doPublish} validationSchema={FormSchema}>
-            {({ handleSubmit, values }) => (
-                <Form onSubmit={handleSubmit}>
-                    <Card className={classNames('template-form', 'slide-right', { ['fullscreen-mode']: viewFullscreen })}>
-                        <CardHeader>
-                            <Row className='align-items-center d-nowrap'>
-                                <Col>
-                                    {template ? (
-                                        <h3 className='truncate'>{texts.templates.templateEdit} {template.code}</h3>
-                                    ) : (
-                                        <h3 className='truncate'>{texts.templates.templateNew}</h3>
-                                    )}
-                                </Col>
-                                <Col xs='auto'>
-                                    <Button type='submit' color='success' disabled={upserting}>
-                                        <Loader light small visible={upserting} /> {texts.common.save}
-                                    </Button>
-                                </Col>
-                            </Row>
+        <FormProvider {...form}>
+            <Form onSubmit={form.handleSubmit(doPublish)}>
+                <Card className={classNames('template-form', 'slide-right', { ['fullscreen-mode']: viewFullscreen })}>
+                    <CardHeader>
+                        <Row className='align-items-center d-nowrap'>
+                            <Col>
+                                {template ? (
+                                    <h3 className='truncate'>{texts.templates.templateEdit} {template.code}</h3>
+                                ) : (
+                                    <h3 className='truncate'>{texts.templates.templateNew}</h3>
+                                )}
+                            </Col>
+                            <Col xs='auto'>
+                                <Button type='submit' color='success' disabled={upserting}>
+                                    <Loader light small visible={upserting} /> {texts.common.save}
+                                </Button>
+                            </Col>
+                        </Row>
 
-                            <button type='button' className='fullscreen' onClick={doToggleFullscreen}>
-                                <Icon type={viewFullscreen ? 'fullscreen_exit' : 'fullscreen'} />
-                            </button>
+                        <button type='button' className='fullscreen' onClick={doToggleFullscreen}>
+                            <Icon type={viewFullscreen ? 'fullscreen_exit' : 'fullscreen'} />
+                        </button>
 
-                            <button type='button' className='close' onClick={onClose}>
-                                <span aria-hidden='true'>×</span>
-                            </button>
-                        </CardHeader>
+                        <button type='button' className='close' onClick={onClose}>
+                            <span aria-hidden='true'>×</span>
+                        </button>
+                    </CardHeader>
 
-                        <CardBody>
-                            <Row className='template-form-inner'>
-                                <Col xs='auto'>
-                                    <FormError error={upsertingError} />
+                    <CardBody>
+                        <Row className='template-form-inner'>
+                            <Col xs='auto'>
+                                <FormError error={upsertingError} />
 
-                                    <fieldset disabled={upserting}>
-                                        <Forms.Text name='code' vertical
-                                            label={texts.common.code} />
-                                    </fieldset>
+                                <fieldset disabled={upserting}>
+                                    <Forms.Text name='code' vertical
+                                        label={texts.common.code} />
+                                </fieldset>
 
-                                    <NotificationsForm.Formatting vertical
-                                        onLanguageSelect={onLanguageSelect}
-                                        language={language}
-                                        languages={appLanguages}
-                                        field='formatting' disabled={upserting} />
+                                <NotificationsForm.Formatting vertical
+                                    onLanguageSelect={onLanguageSelect}
+                                    language={language}
+                                    languages={appLanguages}
+                                    field='formatting' disabled={upserting} />
 
-                                    <hr />
+                                <hr />
 
-                                    <NotificationsForm.Settings
-                                        field='settings' disabled={upserting} />
-                                </Col>
-                                <Col xs='auto'>
-                                    <div className='template-form-preview sticky-top'>
-                                        <Label>{texts.common.preview}</Label>
-                                        
-                                        <NotificationPreview formatting={values?.formatting} language={language}></NotificationPreview>
-                                    </div>
-                                </Col>
-                            </Row>
-                        </CardBody>
-                    </Card>
-                </Form>
-            )}
-        </Formik>
+                                <NotificationsForm.Settings field='settings'
+                                    disabled={upserting} />
+
+                                <NotificationsForm.Scheduling field='scheduling'
+                                    disabled={upserting} />
+                            </Col>
+                            <Col xs='auto'>
+                                <div className='template-form-preview sticky-top'>
+                                    <Label>{texts.common.preview}</Label>
+
+                                    <NotificationPreview formatting={form.watch('formatting')} language={language}></NotificationPreview>
+                                </div>
+                            </Col>
+                        </Row>
+                    </CardBody>
+                </Card>
+            </Form>
+        </FormProvider>
     );
 };

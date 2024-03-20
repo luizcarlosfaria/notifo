@@ -7,7 +7,6 @@
 
 import * as React from 'react';
 import { useDispatch } from 'react-redux';
-import ReactTooltip from 'react-tooltip';
 import { Button, Col, Nav, NavItem, NavLink, Row, Table } from 'reactstrap';
 import { FormError, Icon, ListSearch, Loader, Query, useBooleanObj, useEventCallback, useSavedState } from '@app/framework';
 import { TopicDto, TopicQueryScope } from '@app/service';
@@ -18,7 +17,7 @@ import { TopicDialog } from './TopicDialog';
 import { TopicRow } from './TopicRow';
 
 export const TopicsPage = () => {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const appLanguages = app.languages;
@@ -28,10 +27,6 @@ export const TopicsPage = () => {
     const [currentTopic, setCurrentTopic] = React.useState<TopicDto>();
     const [currentScope, setCurrentScope] = React.useState<TopicQueryScope>('All');
     const [showCounters, setShowCounters] = useSavedState(false, 'show.counters');
-
-    React.useEffect(() => {
-        ReactTooltip.rebuild();
-    });
 
     React.useEffect(() => {
         dispatch(loadTopics(appId, currentScope, {}));
@@ -83,7 +78,7 @@ export const TopicsPage = () => {
                             {topics.isLoading ? (
                                 <Loader visible={topics.isLoading} />
                             ) : (
-                                <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tip={texts.common.refresh}>
+                                <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.refresh}>
                                     <Icon className='text-lg' type='refresh' />
                                 </Button>
                             )}
@@ -139,7 +134,7 @@ export const TopicsPage = () => {
                     {topics.items &&
                         <>
                             {topics.items.map(topic => (
-                                <TopicRow key={topic.path} topic={topic} language={appLanguages[0]} showCounters={showCounters} 
+                                <TopicRow key={topic.path} topic={topic} language={appLanguages[0]} showCounters={showCounters}
                                     onDelete={doDelete}
                                     onEdit={doEdit}
                                 />

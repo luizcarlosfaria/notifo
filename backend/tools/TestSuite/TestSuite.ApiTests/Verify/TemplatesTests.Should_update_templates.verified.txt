@@ -1,8 +1,0 @@
-﻿{
-  code: Guid_1,
-  formatting: {
-    subject: {
-      en: subject1_1
-    }
-  }
-}

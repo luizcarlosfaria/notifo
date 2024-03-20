@@ -8,6 +8,7 @@
 import * as React from 'react';
 import { Badge, Card, CardBody, Col, Row } from 'reactstrap';
 import { IntegrationDefinitionDto } from '@app/service';
+import { IntegrationImage } from './IntegrationImage';
 
 export interface SupportedIntegrationProps {
     // The type code ofthe integration.
@@ -28,25 +29,21 @@ export const SupportedIntegration = React.memo((props: SupportedIntegrationProps
     };
 
     return (
-        <Card className='integration-card' onClick={doAdd}>
+        <Card className='integration-card available' onClick={doAdd}>
             <CardBody>
                 <Row noGutters>
                     <Col className='col-image'>
-                        <img src={definition.logoUrl} alt={definition.title} />
+                        <IntegrationImage definition={definition} type={type} />
                     </Col>
 
                     <Col>
                         <h4>{definition.title}</h4>
 
-                        <div>
+                        <div className='badges'>
                             {definition.capabilities.map(capability => (
                                 <Badge key={capability} color='secondary' className='mr-1' pill>{capability}</Badge>
                             ))}
                         </div>
-
-                        <small>
-                            {definition.description}
-                        </small>
                     </Col>
                 </Row>
             </CardBody>

@@ -43,6 +43,9 @@ export interface NotifoNotificationDto {
     // The confirm url.
     confirmUrl?: string;
 
+    // The confirm link.
+    confirmLink?: string;
+
     // The confirm text.
     confirmText?: string;
 
@@ -129,6 +132,7 @@ export function parseShortNotification(value: any): NotifoNotificationDto {
     return {
         id: value.id,
         body: value.nb,
+        confirmLink: value.cl,
         confirmText: value.ct,
         confirmUrl: value.cu,
         imageLarge: value.il,
@@ -377,7 +381,7 @@ export async function apiDeleteWebPush(config: SDKConfig, subscription: PushSubs
             ...getAuthHeader(config),
             'Content-Type': 'text/json',
         },
-        body: JSON.stringify({ subscription }),
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
     });
 
     if (!response.ok) {
@@ -445,7 +449,7 @@ export async function apiRegister(config: SDKConfig) {
         throw new Error('Request failed with {response.statusCode}');
     }
 
-    const result: object = await response.json();
+    const result: Record<string, any> = await response.json();
 
     for (const key in result) {
         if (!result[key]) {

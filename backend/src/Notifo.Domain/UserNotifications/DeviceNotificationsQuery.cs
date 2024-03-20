@@ -15,7 +15,7 @@ public sealed class DeviceNotificationsQuery
 
     public Instant After { get; set; }
 
-    public bool IncludeUnseen { get; set; }
+    public DeviceNotificationsQueryScope Scope { get; set; }
 
     public int Take { get; set; }
 

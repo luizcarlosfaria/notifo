@@ -5,8 +5,9 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
+using Notifo.Domain.Integrations;
 using Notifo.Domain.UserNotifications;
-using Notifo.Infrastructure.TestHelpers;
+using Notifo.Infrastructure;
 
 namespace Notifo.Domain.Channels.MobilePush;
 
@@ -15,6 +16,18 @@ public class MobilePushJobTests
     [Fact]
     public void Should_serialize_and_deserialize()
     {
+        var context = new ChannelContext
+        {
+            App = null!,
+            AppId = null!,
+            Configuration = [],
+            ConfigurationId = Guid.NewGuid(),
+            IsUpdate = false,
+            Setting = new ChannelSetting(),
+            User = null!,
+            UserId = null!,
+        };
+
         var sut = new MobilePushJob(
             new UserNotification
             {
@@ -23,18 +36,13 @@ public class MobilePushJobTests
                     Subject = "My Subject"
                 }
             },
-            new ChannelSetting
-            {
-                Send = ChannelSend.Send
-            },
-            Guid.NewGuid(),
+            context,
             new MobilePushToken
             {
                 Token = "Token",
                 DeviceIdentifier = "DeviceID",
                 DeviceType = MobileDeviceType.iOS
-            },
-            true);
+            });
 
         var serialized = sut.SerializeAndDeserialize();
 

@@ -5,13 +5,15 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Domain;
-using Notifo.Domain.Channels;
+using Notifo.Domain.Integrations;
 using Notifo.Domain.Users;
 using Notifo.Infrastructure.Reflection;
 
 namespace Notifo.Areas.Api.Controllers.Registration.Dtos;
 
+[OpenApiRequest]
 public sealed class RegisterUserDto
 {
     public bool CreateUser { get; set; }

@@ -11,11 +11,11 @@ namespace Notifo.Domain.Integrations.Smtp;
 
 public class SmtpOptions : IValidatableOptions
 {
-    public string Host { get; set; }
+    public string HostName { get; set; }
 
-    public string? Username { get; set; }
+    public string Username { get; set; }
 
-    public string? Password { get; set; }
+    public string Password { get; set; }
 
     public int HostPort { get; set; } = 587;
 
@@ -26,9 +26,9 @@ public class SmtpOptions : IValidatableOptions
 
     public virtual IEnumerable<ConfigurationError> Validate()
     {
-        if (string.IsNullOrWhiteSpace(Host))
+        if (string.IsNullOrWhiteSpace(HostName))
         {
-            yield return new ConfigurationError("Value is required.", nameof(Host));
+            yield return new ConfigurationError("Value is required.", nameof(HostName));
         }
 
         if (HostPort == 0)

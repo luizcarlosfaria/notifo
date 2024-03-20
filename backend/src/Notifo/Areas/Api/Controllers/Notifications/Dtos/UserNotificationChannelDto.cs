@@ -5,7 +5,6 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.ComponentModel.DataAnnotations;
 using NodaTime;
 using Notifo.Domain.UserNotifications;
 using Notifo.Infrastructure.Reflection;
@@ -17,13 +16,11 @@ public sealed class UserNotificationChannelDto
     /// <summary>
     /// The notification settings.
     /// </summary>
-    [Required]
     public ChannelSettingDto Setting { get; set; }
 
     /// <summary>
     /// The status per token or configuration.
     /// </summary>
-    [Required]
     public Dictionary<Guid, ChannelSendInfoDto> Status { get; set; }
 
     /// <summary>
@@ -45,7 +42,7 @@ public sealed class UserNotificationChannelDto
     {
         var result = SimpleMapper.Map(source, new UserNotificationChannelDto
         {
-            Status = new Dictionary<Guid, ChannelSendInfoDto>()
+            Status = []
         });
 
         if (source.Setting != null)

@@ -19,9 +19,9 @@ public static class StringExtensions
         var url = $"{baseUrl.TrimEnd('/')}/{path.Trim('/')}";
 
         if (trailingSlash &&
-            url.IndexOf("#", StringComparison.OrdinalIgnoreCase) < 0 &&
-            url.IndexOf("?", StringComparison.OrdinalIgnoreCase) < 0 &&
-            url.IndexOf(";", StringComparison.OrdinalIgnoreCase) < 0)
+            url.IndexOf('#', StringComparison.OrdinalIgnoreCase) < 0 &&
+            url.IndexOf('?', StringComparison.OrdinalIgnoreCase) < 0 &&
+            url.IndexOf(';', StringComparison.OrdinalIgnoreCase) < 0)
         {
             url += "/";
         }
@@ -46,6 +46,26 @@ public static class StringExtensions
         if (string.IsNullOrWhiteSpace(value))
         {
             return fallback;
+        }
+
+        return value;
+    }
+
+    public static string OrDefault<T>(this string? value, T fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return fallback?.ToString() ?? string.Empty;
+        }
+
+        return value;
+    }
+
+    public static string? OrNull(this string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
         }
 
         return value;

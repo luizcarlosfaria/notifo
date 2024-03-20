@@ -6,13 +6,12 @@
 // ==========================================================================
 
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using Notifo.Domain.Counters;
 using Notifo.Domain.Events;
+using Notifo.Domain.Integrations;
 using Notifo.Domain.Log;
-using Notifo.Domain.Resources;
 using Notifo.Domain.Subscriptions;
 using Notifo.Domain.Templates;
 using Notifo.Domain.Users;
@@ -27,14 +26,16 @@ public sealed class UserEventPublisher : IUserEventPublisher
     private static readonly HashSet<string> UserAllTopics = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "users/all",
-        "user/all"
+        "users/*",
+        "user/all",
+        "user/*"
     };
 
     private static readonly string[] UserTopicPrefixex =
-    {
+    [
         "users/",
         "user/"
-    };
+    ];
 
     private readonly ICounterService counters;
     private readonly IEventStore eventStore;
@@ -86,13 +87,13 @@ public sealed class UserEventPublisher : IUserEventPublisher
 
             if (string.IsNullOrWhiteSpace(@event.Topic))
             {
-                await logStore.LogAsync(@event.AppId, Texts.Events_NoTopic);
+                await logStore.LogAsync(@event.AppId, LogMessage.Event_NoTopic("System"));
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(@event.TemplateCode) && @event.Formatting?.HasSubject() != true)
             {
-                await logStore.LogAsync(@event.AppId, Texts.Events_NoSubjectOrTemplateCode);
+                await logStore.LogAsync(@event.AppId, LogMessage.Event_NoSubjectOrTemplateCode("System"));
                 return;
             }
 
@@ -150,7 +151,7 @@ public sealed class UserEventPublisher : IUserEventPublisher
 
                     if (@event.Formatting?.HasSubject() != true)
                     {
-                        await logStore.LogAsync(@event.AppId, string.Format(CultureInfo.InvariantCulture, Texts.Template_NoSubject, templateCode));
+                        await logStore.LogAsync(@event.AppId, LogMessage.Event_NoTemplateSubject("System", templateCode!));
                         return;
                     }
 
@@ -165,7 +166,7 @@ public sealed class UserEventPublisher : IUserEventPublisher
                     }
                     catch (UniqueConstraintException)
                     {
-                        await logStore.LogAsync(@event.AppId, Texts.Events_AlreadyProcessed);
+                        await logStore.LogAsync(@event.AppId, LogMessage.Event_AlreadyProcessed("System"));
                         break;
                     }
                 }
@@ -183,14 +184,14 @@ public sealed class UserEventPublisher : IUserEventPublisher
 
             if (count > 0)
             {
-                var counterMap = CounterMap.ForNotification(ProcessStatus.Attempt, count);
+                var counterMap = CounterMap.ForNotification(DeliveryStatus.Attempt, count);
                 var counterKey = TrackingKey.ForEvent(@event);
 
                 await counters.CollectAsync(counterKey, counterMap, ct);
             }
             else
             {
-                await logStore.LogAsync(@event.AppId, Texts.Events_NoSubscriber);
+                await logStore.LogAsync(@event.AppId, LogMessage.Event_NoSubscriber("System"));
             }
 
             log.LogInformation("Processed event for app {appId} with ID {id} to topic {topic}.",
@@ -279,6 +280,8 @@ public sealed class UserEventPublisher : IUserEventPublisher
         {
             result.Settings = ChannelSettings.Merged(@event.Settings, subscription.TopicSettings);
         }
+
+        result.Scheduling = Scheduling.Merged(@event.Scheduling, subscription.Scheduling);
 
         return result;
     }

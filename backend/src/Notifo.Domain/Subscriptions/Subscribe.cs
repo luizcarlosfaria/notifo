@@ -15,6 +15,10 @@ public sealed class Subscribe : SubscriptionCommand
 {
     public ChannelSettings? TopicSettings { get; set; }
 
+    public Scheduling? Scheduling { get; set; }
+
+    public bool HasScheduling { get; set; }
+
     public bool MergeSettings { get; set; }
 
     public override bool CanCreate => true;
@@ -38,18 +42,22 @@ public sealed class Subscribe : SubscriptionCommand
             TopicSettings = newSettings
         };
 
+        if (HasScheduling)
+        {
+            newSubscription = newSubscription with
+            {
+                Scheduling = Scheduling
+            };
+        }
+
         return newSubscription;
     }
 
     private static async Task CheckWhitelistAsync(IUserStore userStore, Subscription subscription,
         CancellationToken ct)
     {
-        var user = await userStore.GetCachedAsync(subscription.AppId, subscription.UserId, ct);
-
-        if (user == null)
-        {
-            throw new DomainObjectNotFoundException(subscription.UserId);
-        }
+        var user = await userStore.GetCachedAsync(subscription.AppId, subscription.UserId, ct)
+            ?? throw new DomainObjectNotFoundException(subscription.UserId);
 
         if (user.AllowedTopics == null)
         {

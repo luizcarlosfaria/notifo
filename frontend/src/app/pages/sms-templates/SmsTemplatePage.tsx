@@ -5,10 +5,10 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-import { Formik } from 'formik';
 import * as React from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 import { useDispatch } from 'react-redux';
-import { useRouteMatch } from 'react-router';
+import { useParams } from 'react-router';
 import { NavLink } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Button, Card, CardBody, Col, Form, Row } from 'reactstrap';
@@ -20,15 +20,14 @@ import { texts } from '@app/texts';
 type FormValues = { name?: string; primary: boolean; languages: { [key: string]: string } };
 
 export const SmsTemplatePage = () => {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const appLanguages = app.languages;
     const loadingTemplate = useSmsTemplates(x => x.loadingTemplate);
     const loadingTemplateError = useSmsTemplates(x => x.loadingTemplateError);
-    const match = useRouteMatch();
     const template = useSmsTemplates(x => x.template);
-    const templateId = match.params['templateId'];
+    const templateId = useParams().templateId!;
     const updating = useSmsTemplates(x => x.updating);
     const updatingError = useSmsTemplates(x => x.updatingError);
     const [language, setLanguage] = React.useState(appLanguages[0]);
@@ -50,7 +49,7 @@ export const SmsTemplatePage = () => {
     }, [updatingError]);
 
     const doSave = useEventCallback((values: FormValues) => {
-        const update = { ...values, languages: {} };
+        const update = { ...values, languages: {} as Record<string, any> };
 
         if (values?.languages) {
             for (const key of Object.keys(values.languages)) {
@@ -61,7 +60,7 @@ export const SmsTemplatePage = () => {
         dispatch(updateSmsTemplate({ appId, id: templateId, update }));
     });
 
-    const initialValues = React.useMemo(() => {
+    const defaultValues = React.useMemo(() => {
         const result: any = { ...Types.clone(template), languages: {} };
 
         if (template?.languages) {
@@ -73,6 +72,8 @@ export const SmsTemplatePage = () => {
         return result;
     }, [template]);
 
+    const form = useForm<FormValues>({ defaultValues, mode: 'onChange' });
+
     return (
         <div className='sms-form'>
             <div className='header'>
@@ -80,7 +81,7 @@ export const SmsTemplatePage = () => {
                     <Col xs='auto'>
                         <Row noGutters className='align-items-center'>
                             <Col xs='auto'>
-                                <NavLink className='btn btn-back btn-flat' to='./'>
+                                <NavLink className='btn btn-back btn-flat' to='./../'>
                                     <Icon type='keyboard_arrow_left' />
                                 </NavLink>
                             </Col>
@@ -95,37 +96,35 @@ export const SmsTemplatePage = () => {
                 </Row>
             </div>
 
-            <Formik<FormValues> initialValues={initialValues} enableReinitialize onSubmit={doSave}>
-                {({ handleSubmit }) => (
-                    <Form onSubmit={handleSubmit}>
-                        <Card>
-                            <CardBody>
-                                <fieldset disabled={updating}>
-                                    <Forms.Text name='name'
-                                        label={texts.common.name} />
+            <FormProvider {...form}>
+                <Form onSubmit={form.handleSubmit(doSave)}>
+                    <Card>
+                        <CardBody>
+                            <fieldset disabled={updating}>
+                                <Forms.Text name='name'
+                                    label={texts.common.name} />
 
-                                    <Forms.Boolean name='primary'
-                                        label={texts.common.primary} />
+                                <Forms.Boolean name='primary'
+                                    label={texts.common.primary} />
 
-                                    <Forms.LocalizedTextArea name='languages'
-                                        languages={app.languages}
-                                        language={language}
-                                        onLanguageSelect={setLanguage}
-                                        label={texts.common.templates} />
-                                </fieldset>
+                                <Forms.LocalizedTextArea name='languages'
+                                    languages={app.languages}
+                                    language={language}
+                                    onLanguageSelect={setLanguage}
+                                    label={texts.common.templates} />
+                            </fieldset>
 
-                                <FormError error={updatingError} />
+                            <FormError error={updatingError} />
 
-                                <div className='text-right mt-2'>
-                                    <Button type='submit' color='success' disabled={updating}>
-                                        <Loader light small visible={updating} /> {texts.common.save}
-                                    </Button>
-                                </div>
-                            </CardBody>
-                        </Card>
-                    </Form>
-                )}
-            </Formik>
+                            <div className='text-right mt-2'>
+                                <Button type='submit' color='success' disabled={updating}>
+                                    <Loader light small visible={updating} /> {texts.common.save}
+                                </Button>
+                            </div>
+                        </CardBody>
+                    </Card>
+                </Form>
+            </FormProvider>
         </div>
     );
 };

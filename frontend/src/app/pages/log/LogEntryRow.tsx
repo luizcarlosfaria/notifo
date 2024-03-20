@@ -20,7 +20,13 @@ export const LogEntryRow = React.memo((props: LogEntryRowProps) => {
     return (
         <tr>
             <td>
-                <span className='truncate'>{entry.message}</span>
+                <span className='truncate'>{entry.eventCode}</span>
+            </td>
+            <td>
+                <span className='truncate'>{entry.system}</span>
+            </td>
+            <td>
+                <span>{entry.message}</span>
             </td>
             <td>
                 <span className='truncate'>{Numbers.formatNumber(entry.count)}</span>

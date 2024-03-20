@@ -6,11 +6,9 @@
  */
 
 import * as React from 'react';
-import { match } from 'react-router';
 import { NavLink } from 'react-router-dom';
-import ReactTooltip from 'react-tooltip';
 import { Button } from 'reactstrap';
-import { combineUrl, Confirm, FormatDate, Icon } from '@app/framework';
+import { Confirm, FormatDate, Icon } from '@app/framework';
 import { UserDto } from '@app/service';
 import { CounterRow } from '@app/shared/components';
 import { texts } from '@app/texts';
@@ -18,9 +16,6 @@ import { texts } from '@app/texts';
 export interface UserRowProps {
     // The user.
     user: UserDto;
-
-    // The match.
-    match: match;
 
     // True to show all counters.
     showCounters?: boolean;
@@ -36,18 +31,13 @@ export interface UserRowProps {
 }
 
 export const UserRow = React.memo((props: UserRowProps) => {
-    const { 
-        showCounters, 
-        match, 
+    const {
+        showCounters,
         onDelete,
         onEdit,
         onPublish,
         user,
     } = props;
-
-    React.useEffect(() => {
-        ReactTooltip.rebuild();
-    });
 
     const doDelete = () => {
         onDelete && onDelete(user);
@@ -61,23 +51,21 @@ export const UserRow = React.memo((props: UserRowProps) => {
         onPublish && onPublish(user);
     };
 
-    const url = combineUrl(match.url, user.id);
-
     return (
         <CounterRow counters={user.counters} columnCount={6} showCounters={showCounters}>
             <tr className='list-item-summary'>
                 <td>
-                    <NavLink to={url}>
+                    <NavLink to={user.id}>
                         <span className='truncate mono'>{user.id}</span>
                     </NavLink>
                 </td>
                 <td>
-                    <NavLink to={url}>
+                    <NavLink to={user.id}>
                         <span className='truncate'>{user.fullName}</span>
                     </NavLink>
                 </td>
                 <td>
-                    <NavLink to={url}>
+                    <NavLink to={user.id}>
                         <span className='truncate'>{user.emailAddress}</span>
                     </NavLink>
                 </td>
@@ -88,17 +76,17 @@ export const UserRow = React.memo((props: UserRowProps) => {
                     <FormatDate date={user.lastUpdate} />
                 </td>
                 <td className='text-right'>
-                    <Button className='ml-1' size='sm' color='info' onClick={doPublish} data-tip={texts.common.publish}>
+                    <Button className='ml-1' size='sm' color='info' onClick={doPublish} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.publish}>
                         <Icon type='send' />
                     </Button>
 
-                    <Button className='ml-1' size='sm' color='primary' onClick={doEdit} data-tip={texts.common.edit}>
+                    <Button className='ml-1' size='sm' color='primary' onClick={doEdit} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.edit}>
                         <Icon type='create' />
                     </Button>
 
                     <Confirm onConfirm={doDelete} text={texts.users.confirmDelete}>
                         {({ onClick }) => (
-                            <Button className='ml-1' size='sm' color='danger' onClick={onClick} data-tip={texts.common.delete}>
+                            <Button className='ml-1' size='sm' color='danger' onClick={onClick} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.delete}>
                                 <Icon type='delete' />
                             </Button>
                         )}

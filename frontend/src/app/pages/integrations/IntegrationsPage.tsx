@@ -26,7 +26,7 @@ type SelectedIntegration = {
 const DEFAULTS: any = {};
 
 export const IntegrationsPage = () => {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const configured = useIntegrations(x => x.configured || DEFAULTS);
@@ -69,7 +69,7 @@ export const IntegrationsPage = () => {
                     {loading ? (
                         <Loader visible={loading} />
                     ) : (
-                        <Button color='blank' size='sm' onClick={doRefresh} data-tip={texts.common.refresh}>
+                        <Button color='blank' size='sm' onClick={doRefresh} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.refresh}>
                             <Icon className='text-lg' type='refresh' />
                         </Button>
                     )}

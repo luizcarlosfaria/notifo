@@ -6,9 +6,11 @@
 // ==========================================================================
 
 using System.ComponentModel.DataAnnotations;
+using Notifo.Areas.Api.OpenApi;
 
 namespace Notifo.Areas.Api.Controllers.Users.Dtos;
 
+[OpenApiRequest]
 public sealed class UpsertUsersDto
 {
     /// <summary>

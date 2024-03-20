@@ -5,125 +5,106 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.Diagnostics;
-using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Notifo.Domain.Apps;
 using Notifo.Domain.ChannelTemplates;
 using Notifo.Domain.Integrations;
 using Notifo.Domain.Log;
-using Notifo.Domain.Resources;
 using Notifo.Domain.UserNotifications;
+using Notifo.Domain.Users;
 using Notifo.Infrastructure;
-using Notifo.Infrastructure.Scheduling;
 using IMessagingTemplateStore = Notifo.Domain.ChannelTemplates.IChannelTemplateStore<Notifo.Domain.Channels.Messaging.MessagingTemplate>;
-using IUserNotificationQueue = Notifo.Infrastructure.Scheduling.IScheduler<Notifo.Domain.Channels.Messaging.MessagingJob>;
 
 namespace Notifo.Domain.Channels.Messaging;
 
-public sealed class MessagingChannel : ICommunicationChannel, IScheduleHandler<MessagingJob>, IMessagingCallback
+public sealed class MessagingChannel : SchedulingChannelBase<MessagingJob, MessagingChannel>, ICallback<IMessagingSender>
 {
-    private readonly IAppStore appStore;
-    private readonly IIntegrationManager integrationManager;
-    private readonly ILogger<MessagingChannel> log;
-    private readonly ILogStore logStore;
+    private const string IntegrationIds = nameof(IntegrationIds);
     private readonly IMessagingFormatter messagingFormatter;
     private readonly IMessagingTemplateStore messagingTemplateStore;
-    private readonly IUserNotificationQueue userNotificationQueue;
-    private readonly IUserNotificationStore userNotificationStore;
 
-    public string Name => Providers.Messaging;
+    public override string Name => Providers.Messaging;
 
-    public MessagingChannel(ILogger<MessagingChannel> log, ILogStore logStore,
-        IAppStore appStore,
-        IIntegrationManager integrationManager,
+    public MessagingChannel(IServiceProvider serviceProvider,
         IMessagingFormatter messagingFormatter,
-        IMessagingTemplateStore messagingTemplateStore,
-        IUserNotificationQueue userNotificationQueue,
-        IUserNotificationStore userNotificationStore)
+        IMessagingTemplateStore messagingTemplateStore)
+        : base(serviceProvider)
     {
-        this.appStore = appStore;
-        this.log = log;
-        this.logStore = logStore;
-        this.integrationManager = integrationManager;
         this.messagingFormatter = messagingFormatter;
         this.messagingTemplateStore = messagingTemplateStore;
-        this.userNotificationQueue = userNotificationQueue;
-        this.userNotificationStore = userNotificationStore;
     }
 
-    public IEnumerable<SendConfiguration> GetConfigurations(UserNotification notification, ChannelSetting settings, SendContext context)
+    public override IEnumerable<SendConfiguration> GetConfigurations(UserNotification notification, ChannelContext context)
     {
-        // Faster check because it does not allocate integrations.
-        if (!integrationManager.IsConfigured<IMessagingSender>(context.App, notification))
+        if (notification.Silent)
         {
             yield break;
         }
 
-        var senders = integrationManager.Resolve<IMessagingSender>(context.App, notification);
+        // Do not pass in the user notification so what we enable all integrations.
+        var integrations = IntegrationManager.Resolve<IMessagingSender>(context.App, null).ToList();
 
-        // Targets are email-addresses or phone-numbers or anything else to identify an user.
-        if (senders.Any(x => x.Target.HasTarget(context.User)))
+        if (integrations.Count == 0)
         {
-            yield return new SendConfiguration();
+            yield break;
         }
+
+        var configuration = new SendConfiguration();
+
+        // Create a context to not expose the user details to the provider.
+        var userContext = context.User.ToContext();
+
+        foreach (var (_, _, sender) in integrations)
+        {
+            sender.AddTargets(configuration, userContext);
+        }
+
+        if (configuration.Count == 0)
+        {
+            yield break;
+        }
+
+        yield return configuration;
     }
 
-    public async Task HandleCallbackAsync(IMessagingSender sender, MessagingCallbackResponse response,
-        CancellationToken ct)
+    public async Task UpdateStatusAsync(IMessagingSender source, string trackingToken, DeliveryResult result)
     {
         using (Telemetry.Activities.StartActivity("MessagingChannel/HandleCallbackAsync"))
         {
-            var (notificationId, result, details) = response;
-            var notification = await userNotificationStore.FindAsync(notificationId, ct);
-
-            if (notification != null)
+            if (result == default)
             {
-                await UpdateAsync(notification, result);
-
-                if (!string.IsNullOrEmpty(details))
-                {
-                    await logStore.LogAsync(notification.AppId, sender.Name, details);
-                }
+                return;
             }
 
-            userNotificationQueue.Complete(MessagingJob.ComputeScheduleKey(notificationId));
-        }
-    }
+            var token = TrackingToken.Parse(trackingToken);
 
-    private async Task UpdateAsync(UserNotification notification, MessagingResult result)
-    {
-        if (!notification.Channels.TryGetValue(Name, out var channel))
-        {
-            // There is no activity on this channel.
-            return;
-        }
-
-        if (channel.Status.Count == 0)
-        {
-            return;
-        }
-
-        // We create only one configuration for this channel. Therefore it must be the first.
-        var (configurationId, status) = channel.Status.First();
-
-        if (status.Status == ProcessStatus.Attempt)
-        {
-            var identifier = TrackingKey.ForNotification(notification, Name, configurationId);
-
-            switch (result)
+            if (token.UserNotificationId == default)
             {
-                case MessagingResult.Delivered:
-                    await userNotificationStore.TrackAsync(identifier, ProcessStatus.Handled);
-                    break;
-                case MessagingResult.Failed:
-                    await userNotificationStore.TrackAsync(identifier, ProcessStatus.Failed);
-                    break;
+                return;
+            }
+
+            var notification = await UserNotificationStore.FindAsync(token.UserNotificationId);
+
+            if (notification == null)
+            {
+                return;
+            }
+
+            var trackingKey = TrackingKey.ForNotification(notification, Name, token.ConfigurationId);
+
+            await UserNotificationStore.TrackAsync(trackingKey, result);
+
+            if (!string.IsNullOrWhiteSpace(result.Detail))
+            {
+                var message = LogMessage.Sms_CallbackError(source.Definition.Type, result.Detail);
+
+                // Also log the error to the app log.
+                await LogStore.LogAsync(notification.AppId, message);
             }
         }
     }
 
-    public async Task SendAsync(UserNotification notification, ChannelSetting setting, Guid configurationId, SendConfiguration configuration, SendContext context,
+    public override async Task SendAsync(UserNotification notification, ChannelContext context,
         CancellationToken ct)
     {
         if (context.IsUpdate)
@@ -133,158 +114,160 @@ public sealed class MessagingChannel : ICommunicationChannel, IScheduleHandler<M
 
         using (Telemetry.Activities.StartActivity("MessagingChannel/SendAsync"))
         {
-            var job = new MessagingJob(notification, setting, configurationId);
+            var job = new MessagingJob(notification, context);
 
-            var integrations = integrationManager.Resolve<IMessagingSender>(context.App, notification);
-
-            // We try all integrations, ordered by priority.
-            foreach (var (_, sender) in integrations)
-            {
-                await sender.AddTargetsAsync(job, context.User);
-            }
-
-            // Should not happen because we check before if there is at least one target.
-            if (job.Targets.Count == 0)
-            {
-                await UpdateAsync(job, ProcessStatus.Skipped);
-            }
-
-            await userNotificationQueue.ScheduleAsync(
+            await Scheduler.ScheduleGroupedAsync(
+                job.Notification.Id.ToString(),
                 job.ScheduleKey,
                 job,
-                job.Delay,
+                job.SendDelay,
                 false, ct);
         }
     }
 
-    public Task HandleExceptionAsync(MessagingJob job, Exception ex)
-    {
-        return UpdateAsync(job, ProcessStatus.Failed);
-    }
-
-    public async Task<bool> HandleAsync(MessagingJob job, bool isLastAttempt,
-        CancellationToken ct)
-    {
-        var links = job.Notification.Links();
-
-        var parentContext = Activity.Current?.Context ?? default;
-
-        using (Telemetry.Activities.StartActivity("MessagingChannel/HandleAsync", ActivityKind.Internal, parentContext, links: links))
-        {
-            if (await userNotificationStore.IsHandledAsync(job, this, ct))
-            {
-                await UpdateAsync(job, ProcessStatus.Skipped);
-            }
-            else
-            {
-                await SendJobAsync(job, ct);
-            }
-
-            return true;
-        }
-    }
-
-    private async Task SendJobAsync(MessagingJob job,
+    protected override async Task SendJobsAsync(List<MessagingJob> jobs,
         CancellationToken ct)
     {
         using (Telemetry.Activities.StartActivity("Send"))
         {
-            var app = await appStore.GetCachedAsync(job.Notification.AppId, ct);
+            var lastJob = jobs[^1];
+
+            var commonApp = lastJob.Notification.AppId;
+            var commonUser = lastJob.Notification.UserId;
+
+            var app = await AppStore.GetCachedAsync(commonApp, ct);
 
             if (app == null)
             {
-                log.LogWarning("Cannot send message: App not found.");
+                Log.LogWarning("Cannot send message: App not found.");
 
-                await UpdateAsync(job, ProcessStatus.Handled);
+                await UpdateAsync(jobs, DeliveryResult.Handled);
                 return;
             }
 
+            var user = await UserStore.GetCachedAsync(app.Id, commonUser, ct);
+
+            if (user == null)
+            {
+                await SkipAsync(jobs, LogMessage.User_Deleted(Name, commonUser));
+                return;
+            }
+
+            var integrations = IntegrationManager.Resolve<IMessagingSender>(app, lastJob.Notification).ToList();
+
+            if (integrations.Count == 0)
+            {
+                await SkipAsync(jobs, LogMessage.Integration_Removed(Name));
+                return;
+            }
+
+            await UpdateAsync(jobs, DeliveryResult.Attempt);
             try
             {
-                await UpdateAsync(job, ProcessStatus.Attempt);
-
-                var senders = integrationManager.Resolve<IMessagingSender>(app, job.Notification).Select(x => x.Target).ToList();
-
-                if (senders.Count == 0)
-                {
-                    await SkipAsync(job, Texts.Messaging_ConfigReset);
-                    return;
-                }
-
-                var (skip, template) = await GetTemplateAsync(
-                    job.Notification.AppId,
-                    job.Notification.UserLanguage,
-                    job.NotificationTemplate,
-                    ct);
+                var (skip, message) = await BuildMessageAsync(jobs, app, user, ct);
 
                 if (skip != null)
                 {
-                    await SkipAsync(job, skip);
+                    await SkipAsync(jobs, skip.Value);
                     return;
                 }
 
-                var text = messagingFormatter.Format(template, job.Notification);
+                var result = await SendCoreAsync(commonApp, message!, integrations, ct);
 
-                await SendCoreAsync(job, text, senders, ct);
+                if (result.Status > DeliveryStatus.Attempt)
+                {
+                    await UpdateAsync(jobs, result);
+                }
             }
             catch (DomainException ex)
             {
-                await logStore.LogAsync(job.Notification.AppId, Name, ex.Message);
+                await LogStore.LogAsync(commonApp, LogMessage.General_Exception(Name, ex));
                 throw;
             }
         }
     }
 
-    private async Task SendCoreAsync(MessagingJob job, string text, List<IMessagingSender> senders,
+    private async Task<DeliveryResult> SendCoreAsync(string appId, MessagingMessage message, List<ResolvedIntegration<IMessagingSender>> integrations,
         CancellationToken ct)
     {
-        var lastSender = senders[^1];
+        var lastResult = default(DeliveryResult);
 
-        foreach (var sender in senders)
+        foreach (var (_, context, sender) in integrations)
         {
             try
             {
-                var result = await sender.SendAsync(job, text, ct);
+                var result = await sender.SendAsync(context, message, ct);
 
-                // If the message has been delivered, we do not try other integrations.
-                if (result == MessagingResult.Delivered)
+                // We only sent notifications over the first successful integration.
+                if (result.Status >= DeliveryStatus.Sent)
                 {
-                    await UpdateAsync(job, ProcessStatus.Handled);
-                    return;
+                    break;
                 }
             }
             catch (DomainException ex)
             {
-                await logStore.LogAsync(job.Notification.AppId, sender.Name, ex.Message);
+                await LogStore.LogAsync(appId, LogMessage.General_Exception(sender.Definition.Type, ex));
 
-                if (sender == lastSender)
-                {
-                    throw;
-                }
+                // We only expose details of domain exceptions.
+                lastResult = DeliveryResult.Failed(ex.Message);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                if (sender == lastSender)
+                await LogStore.LogAsync(appId, LogMessage.General_InternalException(sender.Definition.Type, ex));
+
+                if (sender == integrations[^1].System)
                 {
                     throw;
                 }
+
+                lastResult = DeliveryResult.Failed();
             }
         }
+
+        return lastResult;
     }
 
-    private Task UpdateAsync(MessagingJob job, ProcessStatus status, string? reason = null)
+    private async Task<(LogMessage? Skip, MessagingMessage?)> BuildMessageAsync(List<MessagingJob> jobs, App app, User user,
+        CancellationToken ct)
     {
-        return userNotificationStore.TrackAsync(job.Tracking, status, reason);
+        var lastJob = jobs[^1];
+
+        foreach (var job in jobs.SkipLast(1))
+        {
+            lastJob.Notification.ChildNotifications ??= [];
+            lastJob.Notification.ChildNotifications.Add(job.Notification);
+        }
+
+        var (skip, template) = await GetTemplateAsync(
+            lastJob.Notification.AppId,
+            lastJob.Notification.UserLanguage,
+            lastJob.Template,
+            ct);
+
+        if (skip != default)
+        {
+            return (skip, null);
+        }
+
+        var (text, errors) = messagingFormatter.Format(template, lastJob, app, user);
+
+        // The text can never be null, because we use the subject as default.
+        if (errors != null)
+        {
+            await LogStore.LogAsync(app.Id, LogMessage.ChannelTemplate_TemplateError(Name, errors));
+        }
+
+        var message = new MessagingMessage
+        {
+            Targets = lastJob.Configuration,
+            // We might also format the text without the template if no primary template is defined.
+            Text = text,
+        };
+
+        return (default, message.Enrich(lastJob, Name));
     }
 
-    private async Task SkipAsync(MessagingJob job, string reason)
-    {
-        await logStore.LogAsync(job.Notification.AppId, Name, reason);
-
-        await UpdateAsync(job, ProcessStatus.Skipped);
-    }
-
-    private async Task<(string? Skip, MessagingTemplate?)> GetTemplateAsync(
+    private async Task<(LogMessage? Skip, MessagingTemplate?)> GetTemplateAsync(
         string appId,
         string language,
         string? name,
@@ -296,24 +279,34 @@ public sealed class MessagingChannel : ICommunicationChannel, IScheduleHandler<M
         {
             case TemplateResolveStatus.ResolvedWithFallback:
                 {
-                    var error = string.Format(CultureInfo.InvariantCulture, Texts.ChannelTemplate_ResolvedWithFallback, name);
+                    var message = LogMessage.ChannelTemplate_ResolvedWithFallback(Name, name);
 
-                    await logStore.LogAsync(appId, Name, error);
+                    // We just log a warning here, but use the fallback template.
+                    await LogStore.LogAsync(appId, message);
+                    break;
+                }
+
+            case TemplateResolveStatus.NotFound when string.IsNullOrWhiteSpace(name):
+                {
+                    var message = LogMessage.ChannelTemplate_ResolvedWithFallback(Name, name);
+
+                    // If no name was specified we just accept that the template does not exist.
+                    await LogStore.LogAsync(appId, message);
                     break;
                 }
 
             case TemplateResolveStatus.NotFound when !string.IsNullOrWhiteSpace(name):
                 {
-                    var error = string.Format(CultureInfo.InvariantCulture, Texts.ChannelTemplate_NotFound, name);
+                    var message = LogMessage.ChannelTemplate_NotFound(Name, name);
 
-                    return (error, null);
+                    return (message, null);
                 }
 
             case TemplateResolveStatus.LanguageNotFound:
                 {
-                    var error = string.Format(CultureInfo.InvariantCulture, Texts.ChannelTemplate_LanguageNotFound, language, name);
+                    var message = LogMessage.ChannelTemplate_LanguageNotFound(Name, language, name);
 
-                    return (error, null);
+                    return (message, null);
                 }
         }
 

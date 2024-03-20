@@ -8,6 +8,7 @@
 using NodaTime;
 using Notifo.Domain.Channels;
 using Notifo.Domain.Counters;
+using Notifo.Domain.Integrations;
 using Notifo.Domain.UserEvents;
 using Notifo.Domain.UserNotifications.Internal;
 using Notifo.Infrastructure;
@@ -33,7 +34,9 @@ public sealed class UserNotificationStore : IUserNotificationStore, IDisposable
 
     public void Dispose()
     {
+#pragma warning disable MA0134 // Observe result of async calls
         collector.StopAsync();
+#pragma warning restore MA0134 // Observe result of async calls
     }
 
     public async Task<IResultList<UserNotification>> QueryForDeviceAsync(string appId, string userId, DeviceNotificationsQuery query,
@@ -50,6 +53,29 @@ public sealed class UserNotificationStore : IUserNotificationStore, IDisposable
 
         var notifications = await repository.QueryAsync(appId, userId, query.ToBaseQuery(), ct);
 
+        static bool IsMatching(ChannelSendInfo status, DeviceNotificationsQuery query)
+        {
+            if (!status.Configuration.ContainsValue(query.DeviceIdentifier!))
+            {
+                return false;
+            }
+
+            if (status.Status < DeliveryStatus.Sent)
+            {
+                return false;
+            }
+
+            switch (query.Scope)
+            {
+                case DeviceNotificationsQueryScope.Seen:
+                    return status.FirstSeen != null;
+                case DeviceNotificationsQueryScope.Unseen:
+                    return status.FirstSeen == null;
+                default:
+                    return true;
+            }
+        }
+
         var filteredNotifications = notifications.Where(notification =>
         {
             if (notification.Silent)
@@ -62,23 +88,10 @@ public sealed class UserNotificationStore : IUserNotificationStore, IDisposable
                 return false;
             }
 
-            foreach (var (_, status) in channel.Status)
-            {
-                if (!status.Configuration.ContainsValue(query.DeviceIdentifier))
-                {
-                    continue;
-                }
+            return channel.Status.Values.Any(x => IsMatching(x, query));
+        });
 
-                if (status.Status == ProcessStatus.Handled && (query.IncludeUnseen || status.FirstSeen == null))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }).ToList();
-
-        return ResultList.Create(filteredNotifications.Count, filteredNotifications);
+        return ResultList.Create(filteredNotifications);
     }
 
     public Task<IResultList<UserNotification>> QueryAsync(string appId, string userId, UserNotificationQuery query,
@@ -126,14 +139,14 @@ public sealed class UserNotificationStore : IUserNotificationStore, IDisposable
     {
         Guard.NotNull(job);
 
-        var notificationId = job.Tracking.UserNotificationId;
+        var notificationId = job.Notification.Id;
 
-        if (job.IsUpdate || job.Delay <= Duration.Zero || notificationId == default)
+        if (job.IsUpdate || job.SendDelay <= Duration.Zero)
         {
             return Task.FromResult(false);
         }
 
-        switch (job.Condition)
+        switch (job.SendCondition)
         {
             case ChannelCondition.IfNotConfirmed:
                 return repository.IsHandledOrConfirmedAsync(notificationId, channel.Name, job.ConfigurationId, ct);
@@ -174,12 +187,12 @@ public sealed class UserNotificationStore : IUserNotificationStore, IDisposable
         return repository.TrackDeliveredAsync(tokens, clock.GetCurrentInstant(), ct);
     }
 
-    public Task TrackAsync(UserEventMessage userEvent, ProcessStatus status,
+    public Task TrackAsync(UserEventMessage userEvent, DeliveryResult result,
         CancellationToken ct = default)
     {
         Guard.NotNull(userEvent);
 
-        var counterMap = CounterMap.ForNotification(status);
+        var counterMap = CounterMap.ForNotification(result.Status);
         var counterKey = TrackingKey.ForUserEvent(userEvent);
 
         return StoreCountersAsync(counterKey, counterMap, ct);
@@ -190,7 +203,7 @@ public sealed class UserNotificationStore : IUserNotificationStore, IDisposable
     {
         Guard.NotNull(notification);
 
-        var counterMap = CounterMap.ForNotification(ProcessStatus.Handled);
+        var counterMap = CounterMap.ForNotification(DeliveryStatus.Attempt);
         var counterKey = TrackingKey.ForNotification(notification);
 
         return Task.WhenAll(
@@ -198,12 +211,15 @@ public sealed class UserNotificationStore : IUserNotificationStore, IDisposable
             StoreInternalAsync(notification, ct));
     }
 
-    public Task TrackAsync(TrackingKey identifier, ProcessStatus status, string? detail = null,
+    public Task TrackAsync(TrackingKey identifier, DeliveryResult result,
         CancellationToken ct = default)
     {
-        Guard.NotNullOrEmpty(identifier.Channel);
+        if (string.IsNullOrWhiteSpace(identifier.Channel))
+        {
+            return StoreInternalAsync(identifier.ToToken(), result);
+        }
 
-        var counterMap = CounterMap.ForChannel(identifier.Channel!, status);
+        var counterMap = CounterMap.ForChannel(identifier.Channel!, result.Status);
         var counterKey = identifier;
 
         if (identifier.ConfigurationId == default)
@@ -213,7 +229,7 @@ public sealed class UserNotificationStore : IUserNotificationStore, IDisposable
 
         return Task.WhenAll(
             StoreCountersAsync(counterKey, counterMap, ct),
-            StoreInternalAsync(identifier.ToToken(), status, detail));
+            StoreInternalAsync(identifier.ToToken(), result));
     }
 
     private Task StoreCountersAsync(TrackingKey key, CounterMap counterValues,
@@ -228,8 +244,8 @@ public sealed class UserNotificationStore : IUserNotificationStore, IDisposable
         return repository.InsertAsync(notification, ct);
     }
 
-    private async Task StoreInternalAsync(TrackingToken token, ProcessStatus status, string? details)
+    private async Task StoreInternalAsync(TrackingToken token, DeliveryResult result)
     {
-        await collector.AddAsync(token, status, details);
+        await collector.AddAsync(token, result);
     }
 }

@@ -5,7 +5,8 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-/** @jsx h */
+/** @jsximportsource preact */
+
 import { MutableRef, StateUpdater, useCallback, useMemo, useRef, useState } from 'preact/hooks';
 import { isFunction } from '@sdk/shared';
 

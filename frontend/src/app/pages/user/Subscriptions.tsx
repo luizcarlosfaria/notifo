@@ -7,7 +7,6 @@
 
 import * as React from 'react';
 import { useDispatch } from 'react-redux';
-import ReactTooltip from 'react-tooltip';
 import { Button, Card, CardBody, Col, Nav, NavItem, NavLink, Row, Table } from 'reactstrap';
 import { FormError, Icon, ListPager, ListSearch, Loader, Query, useBooleanObj, useEventCallback } from '@app/framework';
 import { SubscriptionDto } from '@app/service';
@@ -27,17 +26,13 @@ export interface SubscriptionsProps {
 export const Subscriptions = (props: SubscriptionsProps) => {
     const { onSwitch, userId } = props;
 
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const dialogEdit = useBooleanObj();
     const dialogNew = useBooleanObj();
     const subscriptions = useSubscriptions(x => x.subscriptions);
     const [editSubscription, setEditSubscription] = React.useState<SubscriptionDto>();
-
-    React.useEffect(() => {
-        ReactTooltip.rebuild();
-    });
 
     React.useEffect(() => {
         dispatch(loadSubscriptions(appId, userId, {}));
@@ -88,7 +83,7 @@ export const Subscriptions = (props: SubscriptionsProps) => {
                             {subscriptions.isLoading ? (
                                 <Loader visible={subscriptions.isLoading} />
                             ) : (
-                                <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tip={texts.common.refresh}>
+                                <Button color='blank' size='sm' className='btn-flat' onClick={doRefresh} data-tooltip-id="default-tooltip" data-tooltip-content={texts.common.refresh}>
                                     <Icon className='text-lg' type='refresh' />
                                 </Button>
                             )}
@@ -117,43 +112,45 @@ export const Subscriptions = (props: SubscriptionsProps) => {
 
             <Card className='card-table'>
                 <CardBody>
-                    <Table className='table-fixed table-simple table-middle'>
-                        <colgroup>
-                            <col />
-                            <col style={{ width: 170 }} />
-                        </colgroup>
+                    <div>
+                        <Table className='table-fixed table-simple table-middle'>
+                            <colgroup>
+                                <col />
+                                <col style={{ width: 170 }} />
+                            </colgroup>
 
-                        <thead>
-                            <tr>
-                                <th>
-                                    <span className='truncate'>{texts.common.topic}</span>
-                                </th>
-                                <th className='text-right'>
-                                    <span className='truncate'>{texts.common.actions}</span>
-                                </th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {subscriptions.items &&
-                                <>
-                                    {subscriptions.items.map(subscription => (
-                                        <SubscriptionRow key={subscription.topicPrefix} subscription={subscription}
-                                            onPublish={doPublish}
-                                            onDelete={doDelete}
-                                            onEdit={doEdit}
-                                        />
-                                    ))}
-                                </>
-                            }
-
-                            {subscriptions.isLoaded && subscriptions.items && subscriptions.items.length === 0 &&
+                            <thead>
                                 <tr>
-                                    <td colSpan={2}>{texts.subscriptions.subscriptionsNotFound}</td>
+                                    <th>
+                                        <span className='truncate'>{texts.common.topic}</span>
+                                    </th>
+                                    <th className='text-right'>
+                                        <span className='truncate'>{texts.common.actions}</span>
+                                    </th>
                                 </tr>
-                            }
-                        </tbody>
-                    </Table>
+                            </thead>
+
+                            <tbody>
+                                {subscriptions.items &&
+                                    <>
+                                        {subscriptions.items.map(subscription => (
+                                            <SubscriptionRow key={subscription.topicPrefix} subscription={subscription}
+                                                onPublish={doPublish}
+                                                onDelete={doDelete}
+                                                onEdit={doEdit}
+                                            />
+                                        ))}
+                                    </>
+                                }
+
+                                {subscriptions.isLoaded && subscriptions.items && subscriptions.items.length === 0 &&
+                                    <tr>
+                                        <td colSpan={2}>{texts.subscriptions.subscriptionsNotFound}</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </Table>
+                    </div>
                 </CardBody>
             </Card>
 

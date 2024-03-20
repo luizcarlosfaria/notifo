@@ -5,19 +5,20 @@
 //  All rights reserved. Licensed under the MIT license.
 // ==========================================================================
 
-using System.ComponentModel.DataAnnotations;
+using Notifo.Areas.Api.OpenApi;
 using Notifo.Domain.Channels.MobilePush;
+using Notifo.Domain.Integrations;
 using Notifo.Domain.Users;
 using Notifo.Infrastructure.Reflection;
 
 namespace Notifo.Areas.Api.Controllers.MobilePush.Dtos;
 
+[OpenApiRequest]
 public sealed class RegisterMobileTokenDto
 {
     /// <summary>
     /// The device token.
     /// </summary>
-    [Required]
     public string Token { get; set; }
 
     /// <summary>
@@ -39,10 +40,11 @@ public sealed class RegisterMobileTokenDto
     {
         var result = new AddUserMobileToken
         {
-            Token = ToToken()
-        };
+            Token = ToToken(),
 
-        result.UserId = userId;
+            // User ID is coming from the route in this context.
+            UserId = userId
+        };
 
         return result;
     }

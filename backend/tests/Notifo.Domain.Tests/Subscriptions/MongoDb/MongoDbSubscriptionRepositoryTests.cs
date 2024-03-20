@@ -7,7 +7,7 @@
 
 using System.Diagnostics;
 using MongoDB.Bson;
-using Notifo.Domain.Channels;
+using Notifo.Domain.Integrations;
 
 #pragma warning disable SA1300 // Element should begin with upper-case letter
 
@@ -197,7 +197,7 @@ public class MongoDbSubscriptionRepositoryTests : IClassFixture<MongoDbSubscript
             AppId = appId,
             UserId = userId,
             TopicPrefix = topicPrefix,
-            TopicSettings = new ChannelSettings()
+            TopicSettings = []
         };
 
         if (sendEmail)

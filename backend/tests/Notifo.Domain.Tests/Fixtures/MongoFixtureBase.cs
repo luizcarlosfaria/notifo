@@ -8,6 +8,7 @@
 using System.Diagnostics;
 using EphemeralMongo;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using Notifo.Infrastructure.MongoDb;
 
 namespace Notifo.Domain.UserNotifications.MongoDb;
@@ -22,23 +23,21 @@ public abstract class MongoFixtureBase : IDisposable
 
     protected MongoFixtureBase()
     {
-        ActivityContextSerializer.Register();
-        ActivitySpanIdSerializer.Register();
-        ActivityTraceIdSerializer.Register();
+        var connectionString = "mongodb://localhost";
 
-        InstantSerializer.Register();
-
-        if (Debugger.IsAttached)
-        {
-            MongoClient = new MongoClient("mongodb://localhost");
-        }
-        else
+        if (!Debugger.IsAttached)
         {
             runner = MongoRunnerProvider.Get();
 
-            MongoClient = new MongoClient(runner.ConnectionString);
+            connectionString = runner.ConnectionString;
         }
 
+        var clientSettings = MongoClientSettings.FromConnectionString(connectionString);
+
+        // The current version of the linq provider has some issues with base classes.
+        clientSettings.LinqProvider = LinqProvider.V2;
+
+        MongoClient = MongoClientFactory.Create(connectionString);
         MongoDatabase = MongoClient.GetDatabase("Notifo_Testing");
     }
 
@@ -95,12 +94,7 @@ public static class MongoRunnerProvider
 
         private IMongoRunner GetRunner()
         {
-            if (underlyingMongoRunner == null)
-            {
-                throw new ObjectDisposedException(nameof(IMongoRunner));
-            }
-
-            return underlyingMongoRunner;
+            return underlyingMongoRunner ?? throw new ObjectDisposedException(nameof(IMongoRunner));
         }
 
         public void Dispose()

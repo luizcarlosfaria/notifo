@@ -5,14 +5,13 @@
  * Copyright (c) Sebastian Stehle. All rights reserved.
  */
 
-import { Formik } from 'formik';
 import * as React from 'react';
+import { FormProvider, useForm } from 'react-hook-form';
 import { useDispatch } from 'react-redux';
 import { Button, Form, Modal, ModalBody, ModalFooter, ModalHeader, Nav, NavItem, NavLink } from 'reactstrap';
 import { FormError, Loader, Types, useEventCallback } from '@app/framework';
 import { Clients, UpsertUserDto, UserDto } from '@app/service';
 import { Forms, NotificationsForm } from '@app/shared/components';
-import { CHANNELS } from '@app/shared/utils/model';
 import { upsertUser, useApp, useCore, useUsers } from '@app/state';
 import { texts } from '@app/texts';
 
@@ -27,7 +26,7 @@ export interface UserDialogProps {
 export const UserDialog = (props: UserDialogProps) => {
     const { onClose } = props;
 
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<any>();
     const app = useApp()!;
     const appId = app.id;
     const coreLanguages = useCore(x => x.languages);
@@ -84,87 +83,85 @@ export const UserDialog = (props: UserDialogProps) => {
         return properties.sortByString(x => x.name);
     }, [dialogUser]);
 
-    const initialValues: any = React.useMemo(() => {
-        const result: Partial<UserDto> = Types.clone(dialogUser || {});
-
-        result.settings ||= {};
-
-        for (const channel of CHANNELS) {
-            result.settings[channel] ||= { send: 'Inherit', condition: 'Inherit' };
-        }
-
-        return result;
+    const defaultValues = React.useMemo(() => {
+        return Types.clone(dialogUser || {});
     }, [dialogUser]);
+
+    const form = useForm<UpsertUserDto>({ defaultValues });
 
     return (
         <Modal isOpen={true} size='lg' backdrop={false} toggle={onClose}>
-            <Formik<UpsertUserDto> initialValues={initialValues} enableReinitialize onSubmit={doSave}>
-                {({ handleSubmit }) => (
-                    <Form onSubmit={handleSubmit}>
-                        <ModalHeader toggle={onClose}>
-                            &nbsp;
-                            
-                            <Nav className='nav-tabs2'>
-                                <NavItem>
-                                    <NavLink onClick={() => setDialogTab(0)} active={dialogTab === 0}>{dialogUser ? texts.users.editHeader : texts.users.createHeader}</NavLink>
-                                </NavItem>
-                                <NavItem>
-                                    <NavLink onClick={() => setDialogTab(1)} active={dialogTab === 1}>{texts.common.channels}</NavLink>
-                                </NavItem>
-                            </Nav>
-                        </ModalHeader>
+            <FormProvider {...form}>
+                <Form onSubmit={form.handleSubmit(doSave)}>
+                    <ModalHeader toggle={onClose}>
+                        &nbsp;
 
-                        <ModalBody>
-                            <fieldset className='mt-3' disabled={upserting}>
-                                {dialogTab === 0 ? (
-                                    <>
-                                        <Forms.Text name='id'
-                                            label={texts.common.id} />
+                        <Nav className='nav-tabs2'>
+                            <NavItem>
+                                <NavLink onClick={() => setDialogTab(0)} active={dialogTab === 0}>{dialogUser ? texts.users.editHeader : texts.users.createHeader}</NavLink>
+                            </NavItem>
+                            <NavItem>
+                                <NavLink onClick={() => setDialogTab(1)} active={dialogTab === 1}>{texts.common.channels}</NavLink>
+                            </NavItem>
+                        </Nav>
+                    </ModalHeader>
 
-                                        <Forms.Text name='fullName'
-                                            label={texts.common.name} />
+                    <ModalBody>
+                        <fieldset className='mt-3' disabled={upserting}>
+                            {dialogTab === 0 ? (
+                                <>
+                                    <Forms.Text name='id'
+                                        label={texts.common.id} />
 
-                                        <Forms.Text name='emailAddress'
-                                            label={texts.common.emailAddress} />
+                                    <Forms.Text name='fullName'
+                                        label={texts.common.name} />
 
-                                        <Forms.Text name='phoneNumber'
-                                            label={texts.common.phoneNumber} />
+                                    <Forms.Text name='emailAddress'
+                                        label={texts.common.emailAddress} />
 
-                                        <Forms.Select name='preferredLanguage' options={coreLanguages}
-                                            label={texts.common.language} />
+                                    <Forms.Text name='phoneNumber'
+                                        label={texts.common.phoneNumber} />
 
-                                        <Forms.Select name='preferredTimezone' options={coreTimezones}
-                                            label={texts.common.timezone} />
+                                    <Forms.Select name='preferredLanguage' options={coreLanguages}
+                                        label={texts.common.language} />
 
-                                        {allProperties.length > 0 &&
-                                            <>
-                                                <hr />
+                                    <Forms.Select name='preferredTimezone' options={coreTimezones}
+                                        label={texts.common.timezone} />
 
-                                                {allProperties.map(x =>
-                                                    <Forms.Text key={x.name} name={x.name} hints={x.editorDescription}
-                                                        label={x.editorLabel || x.name} />,
-                                                )}
-                                            </>
-                                        }
-                                    </>
-                                ) : (
-                                    <NotificationsForm.Settings field='settings' disabled={upserting} />
-                                )}
-                            </fieldset>
+                                    {allProperties.length > 0 &&
+                                        <>
+                                            <hr />
 
-                            <FormError error={upsertingError} />
-                        </ModalBody>
-                        <ModalFooter className='justify-content-between'>
-                            <Button type='button' color='none' onClick={onClose} disabled={upserting}>
-                                {texts.common.cancel}
-                            </Button>
-                            <Button type='submit' color='primary' disabled={upserting}>
-                                <Loader light small visible={upserting} /> {texts.common.save}
-                            </Button>
-                        </ModalFooter>
-                    </Form>
-                )}
-            </Formik>
+                                            {allProperties.map(x =>
+                                                <Forms.Text key={x.name} name={x.name} hints={x.editorDescription}
+                                                    label={x.editorLabel || x.name} />,
+                                            )}
+                                        </>
+                                    }
+                                </>
+                            ) : (
+                                <>
+                                    <NotificationsForm.Settings field='settings'
+                                        disabled={upserting} />
+
+                                    <NotificationsForm.Scheduling field='scheduling'
+                                        disabled={upserting} />
+                                </>
+                            )}
+                        </fieldset>
+
+                        <FormError error={upsertingError} />
+                    </ModalBody>
+                    <ModalFooter className='justify-content-between'>
+                        <Button type='button' color='none' onClick={onClose} disabled={upserting}>
+                            {texts.common.cancel}
+                        </Button>
+                        <Button type='submit' color='primary' disabled={upserting}>
+                            <Loader light small visible={upserting} /> {texts.common.save}
+                        </Button>
+                    </ModalFooter>
+                </Form>
+            </FormProvider>
         </Modal>
     );
 };

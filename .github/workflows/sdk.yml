@@ -10,17 +10,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v4.0.0
 
       - name: Set up dotnet
-        uses: actions/setup-dotnet@v3.0.2
+        uses: actions/setup-dotnet@v4.0.0
         with:
-          dotnet-version: 7.0.x
+          dotnet-version: 8.0.x
 
       - name: Pack
         run: |
-          cd backend/sdk/Notifo.SDK && dotnet pack -c Release
+          cd tools/sdk/Notifo.SDK && dotnet pack -c Release
 
       - name: Publish
         run: |
-          cd backend/sdk/Notifo.SDK && dotnet nuget push **/*.nupkg --source 'https://api.nuget.org/v3/index.json' --skip-duplicate -k ${{ secrets.NUGET }}
+          cd tools/sdk/Notifo.SDK && dotnet nuget push **/*.nupkg --source 'https://api.nuget.org/v3/index.json' --skip-duplicate -k ${{ secrets.NUGET }}

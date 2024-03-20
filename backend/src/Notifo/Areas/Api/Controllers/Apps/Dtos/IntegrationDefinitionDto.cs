@@ -20,10 +20,9 @@ public sealed class IntegrationDefinitionDto
     public string Title { get; set; }
 
     /// <summary>
-    /// The logo URL for the integration.
+    /// The logo for the integration.
     /// </summary>
-    [Required]
-    public string LogoUrl { get; set; }
+    public string Logo { get; set; }
 
     /// <summary>
     /// The optional description of the integration.
@@ -33,13 +32,11 @@ public sealed class IntegrationDefinitionDto
     /// <summary>
     /// The properties to configure.
     /// </summary>
-    [Required]
     public List<IntegrationPropertyDto> Properties { get; set; }
 
     /// <summary>
     /// The features of the integration.
     /// </summary>
-    [Required]
     public IReadOnlySet<string> Capabilities { get; set; }
 
     public static IntegrationDefinitionDto FromDomainObject(IntegrationDefinition source)

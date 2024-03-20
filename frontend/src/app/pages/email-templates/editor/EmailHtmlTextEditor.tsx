@@ -8,6 +8,9 @@
 // tslint:disable: quotemark
 
 import * as CodeMirror from 'codemirror';
+import * as React from 'react';
+import { useEventCallback } from '@app/framework';
+import { EmailPreviewErrorDto, MjmlSchema } from '@app/service';
 import 'codemirror/addon/dialog/dialog';
 import 'codemirror/addon/edit/closetag';
 import 'codemirror/addon/edit/matchtags';
@@ -24,16 +27,17 @@ import 'codemirror/addon/search/search';
 import 'codemirror/addon/search/searchcursor';
 import 'codemirror/addon/selection/active-line';
 import 'codemirror/mode/xml/xml';
-import * as React from 'react';
-import { EmailFormattingError } from '@app/service';
-import { completeAfter, completeIfAfterLt, completeIfInTag, tags } from './helpers';
+import { completeAfter, completeIfAfterLt, completeIfInTag } from './helpers';
 
 export interface EmailHtmlTextEditorProps {
     // The value.
     value: string;
 
     // The template errors.
-    errors?: EmailFormattingError[];
+    errors?: EmailPreviewErrorDto[];
+
+    // The email schema.
+    schema?: MjmlSchema;
 
     // When the html has changed.
     onChange?: (value: string) => void;
@@ -42,31 +46,29 @@ export interface EmailHtmlTextEditorProps {
     onBlur?: () => void;
 }
 
-export class EmailHtmlTextEditor extends React.Component<EmailHtmlTextEditorProps> {
-    private editor!: CodeMirror.Editor;
-    private editorRef = React.createRef<HTMLTextAreaElement>();
-    private value = '';
+export const EmailHtmlTextEditor = (props: EmailHtmlTextEditorProps) => {
+    const {
+        errors,
+        onBlur,
+        onChange,
+        schema,
+        value,
+    } = props;
 
-    public componentDidUpdate(prevProps: EmailHtmlTextEditorProps) {
-        if (this.props.value !== this.value) {
-            this.updateValue();
-        }
+    const [editor, setEditor] = React.useState<CodeMirror.Editor>();
+    const onBlurRef = React.useRef(onBlur);
+    const onChangeRef = React.useRef(onChange);
+    const valueRef = React.useRef('');
 
-        if (this.props.errors !== prevProps.errors) {
-            this.updateErrors();
-        }
-    }
+    onBlurRef.current = onBlur;
+    onChangeRef.current = onChange;
 
-    public componentDidMount() {
-        const hintOptions: any = {
-            schemaInfo: tags,
-        };
-
-        if (!this.editorRef.current) {
+    const doInit = useEventCallback((textarea: HTMLTextAreaElement) => {
+        if (!textarea) {
             return;
         }
 
-        this.editor = CodeMirror.fromTextArea(this.editorRef.current, {
+        const editor = CodeMirror.fromTextArea(textarea, {
             autoCloseTags: true,
             mode: 'xml',
             extraKeys: {
@@ -90,7 +92,6 @@ export class EmailHtmlTextEditor extends React.Component<EmailHtmlTextEditorProp
                 'CodeMirror-linenumbers',
                 'CodeMirror-foldgutter',
             ],
-            hintOptions,
             indentWithTabs: false,
             indentUnit: 2,
             lineNumbers: true,
@@ -100,58 +101,72 @@ export class EmailHtmlTextEditor extends React.Component<EmailHtmlTextEditorProp
             tabSize: 2,
         });
 
-        this.editor.on('change', () => {
-            const { onChange } = this.props;
+        editor.on('change', () => {
+            const currentOnChange = onChangeRef.current;
 
-            if (onChange) {
-                const value = this.editor.getValue();
-
-                if (value !== this.value) {
-                    this.value = value;
-
-                    onChange(value);
-                }
+            if (!currentOnChange) {
+                return;
             }
+
+            const value = editor.getValue();
+
+            if (value === valueRef.current) {
+                return;
+            }
+
+            valueRef.current = value;
+
+            currentOnChange(value);
         });
 
-        this.editor.on('blur', () => {
-            const { onBlur } = this.props;
+        editor.on('blur', () => {
+            const currentOnBlur = onBlurRef.current;
 
-            onBlur && onBlur();
+            if (!currentOnBlur) {
+                return;
+            }
+
+            currentOnBlur();
         });
-    }
 
-    private updateValue() {
-        if (this.editor) {
-            const { value } = this.props;
+        setEditor(editor);
+    });
 
-            this.editor.setValue(value);
+    React.useEffect(() => {
+        editor?.setOption('hintOptions', schema ?  { schemaInfo: schema } : undefined);
+    }, [editor, schema]);
+
+    React.useEffect(() => {
+        if (!editor || valueRef.current === value) {
+            return;
         }
-    }
 
-    private updateErrors() {
-        if (this.editor) {
-            const { errors } = this.props;
+        editor.setValue(value);
+    }, [editor, value]);
 
-            this.editor.setOption('lint', {
-                getAnnotations: () => {
-                    if (!errors) {
-                        return [];
-                    }
-
-                    return errors.map(({ message, line }) => {
-                        const from = CodeMirror.Pos(line! - 1, 1);
-
-                        return { message, severity: 'error', from, to: from };
-                    });
-                },
-            });
+    React.useEffect(() => {
+        if (!editor) {
+            return;
         }
-    }
 
-    public render() {
-        return (
-            <textarea ref={this.editorRef} />
-        );
-    }
-}
+        editor.setOption('lint', {
+            getAnnotations: () => {
+                if (!errors) {
+                    return [];
+                }
+
+                return errors.map(({ message, lineNumber }) => {
+                    const from = CodeMirror.Pos(lineNumber! - 1, 1);
+
+                    return { message, severity: 'error', from, to: from };
+                });
+            },
+        });
+    }, [editor, errors]);
+
+    return (
+        <div className='email-editor'>
+            <textarea ref={doInit} />
+        </div>
+    );
+};
